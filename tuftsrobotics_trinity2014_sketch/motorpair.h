@@ -16,12 +16,15 @@ class MotorPair{
 		void flip1();
 		void flip2();
 
-                void swapMotors();
+		void swapMotors();
 
-                //Give a speed b/w -255 and 255
-                //and an angle between 30 and -30
-                //to specify how sharply you want the robot to turn.
+		//Give a speed b/w -255 and 255
+		//and an angle between 30 and -30
+		//to specify how sharply you want the robot to turn.
 		void drive(int spd, int angle);
+		
+		//Give a speed at which to turn in place b/w -255 and 255
+		void spin(int spd);
 		void brake();
 	private:
 		Motor* motor1;

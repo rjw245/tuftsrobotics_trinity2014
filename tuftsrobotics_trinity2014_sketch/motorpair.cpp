@@ -36,24 +36,24 @@ void MotorPair::swapMotors(){
 }
 
 void MotorPair::drive(int spd, int angle){
-        if(angle>30)  angle= 30;
-        if(angle<-30) angle=-30;
-        int mot1_speed;
-        int mot2_speed;
-        if(angle<0){
-	  mot1_speed = (spd * (angle - MIN_ANGLE)) / (ANGLE_RANGE/2);
-          mot2_speed = spd;
-        }else{
-	  mot2_speed = (spd * (MAX_ANGLE - angle)) / (ANGLE_RANGE/2);
-          mot1_speed = spd;
-        }
-        Serial.print("Motor 1 ");
-        Serial.print(mot1_speed);
-        Serial.print("     Motor 2 ");
-        Serial.print(mot2_speed);
-        Serial.println();
-	motor1->drive(mot1_speed);
-	motor2->drive(mot2_speed);
+		if(angle>30)  angle= 30;
+		if(angle<-30) angle=-30;
+		int mot1_speed;
+		int mot2_speed;
+		if(angle<0){
+			mot1_speed = (spd * (angle - MIN_ANGLE)) / (ANGLE_RANGE/2);
+			mot2_speed = spd;
+		}else{
+			mot2_speed = (spd * (MAX_ANGLE - angle)) / (ANGLE_RANGE/2);
+			mot1_speed = spd;
+		}
+		motor1->drive(mot1_speed);
+		motor2->drive(mot2_speed);
+}
+
+void MotorPair::spin(int spd){
+	motor1->drive(spd);
+	motor2->drive(-spd);
 }
 
 void MotorPair::brake(){
