@@ -6,10 +6,10 @@ class Motor{
     public:
         Motor();
         void attach(int dig, int pwm);
-		void flip();
-		void drive(int speed);
-		void brake();
-        
+      		void flip();
+      		void drive(int speed);
+      		void brake();
+
     private:
         int digPin;
         int pwmPin;
