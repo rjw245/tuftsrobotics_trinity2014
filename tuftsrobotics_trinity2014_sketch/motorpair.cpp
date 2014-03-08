@@ -36,6 +36,7 @@ void MotorPair::swapMotors(){
 }
 
 void MotorPair::drive(int spd, int angle){
+		if(motor1==NULL || motor2==NULL) return;
 		if(angle>30)  angle= 30;
 		if(angle<-30) angle=-30;
 		int mot1_speed;
@@ -52,6 +53,7 @@ void MotorPair::drive(int spd, int angle){
 }
 
 void MotorPair::spin(int spd){
+	if(motor1==NULL || motor2==NULL) return;
 	motor1->drive(spd);
 	motor2->drive(-spd);
 }
