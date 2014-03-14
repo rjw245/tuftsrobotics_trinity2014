@@ -23,22 +23,7 @@ void setup() {
 }
 
 void loop() {
-  for(int i=30; i>=-30; i--){
-    Serial.println(i);
-    mpair.drive(255,i);
-    delay(25);
-  }
-  delay(2000);
-  for(int i=-30; i<=30; i++){
-    Serial.println(i);
-    mpair.drive(255,i);
-    delay(25);
-  }
-  delay(2000);
-  mpair.swapMotors();
-  mpair.drive(255,30);
-  Serial.println("Swapped motors");
-  delay(2000);
+    mpair.drive(155,0);
   // put your main code here, to run repeatedly:
 
 }
