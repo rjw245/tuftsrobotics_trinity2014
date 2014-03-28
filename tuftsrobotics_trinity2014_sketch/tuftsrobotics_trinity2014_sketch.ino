@@ -36,18 +36,25 @@
 #define LINESENSED            700
 #define FIRESENSED            50
 
+//Motor controller object
 MotorControl mcontrol(PROPORTIONAL);
 
+//Motor objects
 Motor motor1;
 Motor motor2;
 
+//Start state is INITIALIZATION
 int STATE = INITIALIZATION;
 
 void setup() {
+  //Set up motors with proper pins
   motor1.attach(motor1dig,motor1pwm);
   motor2.attach(motor2dig,motor2pwm);
+  
+  //Get motor 1 in proper orientation
   motor1.flip();
   
+  //Give these motors to the motor controller for wall following
   mcontrol.attach(&motor1,&motor2);
   
   
@@ -71,11 +78,18 @@ void setup() {
 void loop() {
   switch(STATE){
     case INITIALIZATION:
+      //Rotate 90 deg CW at start
       rotCW90();
+      
+      //Wall follow
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
+      
+      //Is there something in front of me? If so, rotate 90 CCW
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
         rotCCW90();
       }
+      
+      //After 3 seconds, initialization is over, so go to next state
       if(millis()>=3000){
         STATE = WALLFOLLOW;
       }
@@ -89,7 +103,7 @@ void loop() {
       }
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
       
-      //Look for lines
+      //Look for lines. If found, change state
       if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
         STATE = INROOM;
       }
@@ -164,12 +178,18 @@ void sensorDiagnostics(){
   Serial.println();
 }
 
+
+
+//Function for rotation (dead recknoning!)
+
+//Rotate clockwise 90 degrees
 void rotCW90(){
   motor1.drive(200);
   motor2.drive(-200);
   delay(400);
 }
 
+//Rotate counterclockwise 90 degrees
 void rotCCW90(){
   motor1.drive(-200);
   motor2.drive(200);

@@ -23,7 +23,12 @@ boolean FireSensorArray::isThereFire(){
 }
 
 int FireSensorArray::fireAngle(){
-  int curMax = fireSensePins[NUMFIRESENSORS/2]; //Middle one
+  int curMax = -2;
+  for(int i = 0; i < NUMFIRESENSORS; i++) {
+    if(fireSensePins[i] > curMax) {
+      curMax = analogRead(fireSensePins[i]);
+    }
+  }
   int angle = map((fireSensePins[NUMFIRESENSORS-1] - fireSensePins[0]),-curMax, curMax,-45,45);
   return angle;
 }
