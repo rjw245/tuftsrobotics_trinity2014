@@ -40,7 +40,7 @@ void MotorControl::drive(int p_left, int p_right, int inertia){
   if(controlType == PROPORTIONAL){
     int leftSpeed  = KP * (p_left - OPT)  + inertia;
     int rightSpeed = KP * (p_right - OPT) + inertia;
-    Serial.println(rightSpeed);
+    //Serial.println(rightSpeed);
     motor1->drive(leftSpeed);
     motor2->drive(rightSpeed);
     
