@@ -12,17 +12,36 @@
 #define distFrontPin          -1
 #define distLeftBackPin       A2
 #define distLeftFrontPin      A3
+#define fireSense1            -1
+#define fireSense2            -1
+#define fireSense3            -1
+#define fireSense4            -1
+#define fireSense5            -1
 
-
+//MOTOR 2 IS ON THE RIGHT FOR DELUX
 #define motor1dig             4
 #define motor1pwm             5
 #define motor2dig             7
 #define motor2pwm             6
 
+//Possible States
+#define INITIALIZATION        0
+#define WALLFOLLOW            1
+#define INROOM                2
+#define FOUNDFIRE             3
+#define RETURNHOME            4
+
+//Misc constants
+#define FRONTOBSTACLEDIST     300
+#define LINESENSED            700
+#define FIRESENSED            50
+
 MotorControl mcontrol(PROPORTIONAL);
 
 Motor motor1;
 Motor motor2;
+
+int STATE = INITIALIZATION;
 
 void setup() {
   motor1.attach(motor1dig,motor1pwm);
@@ -50,12 +69,65 @@ void setup() {
 }
 
 void loop() {
-  mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
-  if(millis()%1000==0){
-    //sensorDiagnostics();
+  switch(STATE){
+    case INITIALIZATION:
+      rotCW90();
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
+      if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
+        rotCCW90();
+      }
+      if(millis()>=3000){
+        STATE = WALLFOLLOW;
+      }
+      
+      break;
+      
+    case WALLFOLLOW:
+      //Look for front obstacles:
+      if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
+        rotCCW90();
+      }
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
+      
+      //Look for lines
+      if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
+        STATE = INROOM;
+      }
+      
+      break;
+      
+    case INROOM:
+      //IF fire sensed
+      if(analogRead(fireSense1)>FIRESENSED
+      || analogRead(fireSense2)>FIRESENSED
+      || analogRead(fireSense3)>FIRESENSED
+      || analogRead(fireSense4)>FIRESENSED
+      || analogRead(fireSense5)>FIRESENSED){
+        STATE = FOUNDFIRE;
+      }
+      else{
+        //BACK OUT OF ROOM
+      }
+      
+      break;
+      
+    case FOUNDFIRE:
+      //ROTATE UNTIL FIRE IS DIRECTLY AHEAD
+      //DRIVE FORWARD UNTIL FIRE READS SIGNIFICANTLY HIGH
+      //TRIGGER CO2
+      //STATE = RETURNHOME;
+      
+      break;
+      
+    case RETURNHOME:
+      
+      
+      break;
   }
-  // put your main code here, to run repeatedly:
-
+  
+  if(millis()%1000==0){
+    sensorDiagnostics();
+  }
 }
 
 void sensorDiagnostics(){
@@ -90,4 +162,16 @@ void sensorDiagnostics(){
   Serial.println(analogRead(distFrontPin));
   
   Serial.println();
+}
+
+void rotCW90(){
+  motor1.drive(200);
+  motor2.drive(-200);
+  delay(400);
+}
+
+void rotCCW90(){
+  motor1.drive(-200);
+  motor2.drive(200);
+  delay(400);
 }
