@@ -1,5 +1,6 @@
 #include "motor.h"
 #include "motorcontrol.h"
+#include "fireSensorArray.h"
 
 //Set 0 if this bot is "Irrelephant"
 #define IS_DELUX              1
