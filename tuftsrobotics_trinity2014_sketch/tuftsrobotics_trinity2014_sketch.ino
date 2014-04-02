@@ -5,8 +5,8 @@
 #define IS_DELUX              1
 
 //DEFINE ALL PINS HERE
-#define lineLeftPin           -1
-#define lineRightPin          -1
+#define lineLeftPin           A0
+#define lineRightPin          A1
 #define distRightBackPin      A4
 #define distRightFrontPin     A5
 #define distFrontPin          -1
@@ -30,10 +30,10 @@
 #define INROOM                2
 #define FOUNDFIRE             3
 #define RETURNHOME            4
-
+#define LINE                  5
 //Misc constants
 #define FRONTOBSTACLEDIST     300
-#define LINESENSED            700
+#define LINESENSED            500
 #define FIRESENSED            50
 
 //Motor controller object
@@ -71,9 +71,22 @@ void setup() {
   pinMode(motor1pwm,OUTPUT);
   pinMode(motor2dig,OUTPUT);
   pinMode(motor2pwm,OUTPUT);
+  motor1.drive(200);
+  motor2.drive(200);
   
 
 }
+
+//These declarations are for line adjustment
+boolean rmotorForward = true;
+boolean lmotorForward = true;
+int lineLeft,lineRight;
+boolean lineLeftSensed, lineRightSensed;
+int rLineSide = 0, lLineSide = 0; //0 = behind line,
+                                  //1 = in front of line,
+                                  //2 = on line!
+int mspeed = 200;
+//END DECLARATIONS FOR LINE ADJUSTMENT
 
 void loop() {
   switch(STATE){
@@ -104,14 +117,84 @@ void loop() {
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
       
       //Look for lines. If found, change state
-      if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
+      if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
+        STATE = ALIGNLINE;
+      }
+      
+      break;
+     
+    
+    case ALIGNLINE:
+      lineLeft  = analogRead(lineLeftPin);
+      lineRight = analogRead(lineRightPin);
+      lineLeftSensed  = (lineLeft < LINESENSED);
+      lineRightSensed = (lineRight < LINESENSED);
+      /*
+      Serial.print("Left line side: ");
+      Serial.println(lLineSide);
+      Serial.print("Right line side: ");
+      Serial.println(rLineSide);
+      */
+      
+      if(rLineSide == 2){
+        rLineSide = rmotorForward;
+      }
+      if (lLineSide == 2){
+        lLineSide = lmotorForward;
+      }
+      
+      if (lineRightSensed){
+        rLineSide = 2;
+      }
+      if (lineLeftSensed){
+        lLineSide = 2;
+      }
+      
+      if (rLineSide == 2 && lLineSide == 2){
+        Serial.println("ALIGNED WITH LINE!!");
+        delay(100);
         STATE = INROOM;
       }
+      
+      if(rLineSide==0){
+        motor2.drive(mspeed);
+        rmotorForward = true;
+        if(lLineSide==2){
+          motor1.drive(-mspeed);
+          lmotorForward = false;
+        }
+      }
+      if(rLineSide==1){
+        motor2.drive(-mspeed);
+        rmotorForward = false;
+        if(lLineSide==2){
+          motor1.drive(mspeed);
+          lmotorForward = true;
+        }
+      }
+      if(lLineSide==0){
+        motor1.drive(mspeed);
+        lmotorForward = false;
+        if(rLineSide==2){
+          motor2.drive(-mspeed);
+          rmotorForward = true;
+        }
+      }
+      if(lLineSide==1){
+        motor1.drive(-mspeed);
+        lmotorForward = true;
+        if(rLineSide==2){
+          motor2.drive(mspeed);
+          rmotorForward = false;
+        }
+      }
+        
       
       break;
       
     case INROOM:
       //IF fire sensed
+
       if(analogRead(fireSense1)>FIRESENSED
       || analogRead(fireSense2)>FIRESENSED
       || analogRead(fireSense3)>FIRESENSED
@@ -131,8 +214,7 @@ void loop() {
       //TRIGGER CO2
       //STATE = RETURNHOME;
       
-      break;
-      
+      break;      
     case RETURNHOME:
       
       

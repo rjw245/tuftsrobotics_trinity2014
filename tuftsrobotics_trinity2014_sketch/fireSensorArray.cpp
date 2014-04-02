@@ -15,7 +15,7 @@ void FireSensorArray::attach(int pins[NUMFIRESENSORS]){
 
 boolean FireSensorArray::isThereFire(){
 	for(int i=0; i<NUMFIRESENSORS; i++){
-		if(analogRead(fireSensePins[i])>FIRETHRESHOLD)
+		if(analogRead(fireSensePins[i])>FIRETHRESHOLD){
 			return true;
 		}
 	}
@@ -32,3 +32,4 @@ int FireSensorArray::fireAngle(){
   int angle = map((fireSensePins[NUMFIRESENSORS-1] - fireSensePins[0]),-curMax, curMax,-45,45);
   return angle;
 }
+

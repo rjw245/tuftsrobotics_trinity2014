@@ -13,4 +13,6 @@ class FireSensorArray{
 		int fireAngle();
 	private:
 		int fireSensePins[NUMFIRESENSORS];
-}
+};
+
+#endif
