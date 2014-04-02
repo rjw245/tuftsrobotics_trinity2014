@@ -41,6 +41,7 @@
 #define LINE_INFRONT          0
 #define LINE_BEHIND           1
 #define ON_LINE               2
+#define LINE_ADJ_SPEED        180
 
 //Fire sensing constants
 #define FIRESENSED            50
@@ -90,10 +91,8 @@ void setup() {
 //These declarations are for line adjustment
 int lineLeft,lineRight;
 boolean lineLeftSensed, lineRightSensed;
-int rLineSide = 0, lLineSide = 0; //0 = behind line,
-                                  //1 = in front of line,
-                                  //2 = on line!
-int mspeed = 200;
+int rLineSide = LINE_INFRONT;   //Constants define
+int lLineSide = LINE_INFRONT;   //at top of code
 //END DECLARATIONS FOR LINE ADJUSTMENT
 
 void loop() {
@@ -185,27 +184,27 @@ void loop() {
       }
       
       if(rLineSide == LINE_INFRONT){ //If right side behind line...
-        rightMotor.drive(mspeed);        //...drive right side forward
+        rightMotor.drive(LINE_ADJ_SPEED);        //...drive right side forward
         if(lLineSide == ON_LINE){    //..and if left side on line...
-          leftMotor.drive(-mspeed);     //...drive left side opposite to stay in place
+          leftMotor.drive(-LINE_ADJ_SPEED);     //...drive left side opposite to stay in place
         }
       }
       if(rLineSide == LINE_BEHIND){  //If right side in front of line...
-        rightMotor.drive(-mspeed);       //...drive right side backward
+        rightMotor.drive(-LINE_ADJ_SPEED);       //...drive right side backward
         if(lLineSide == ON_LINE){    //..and if left side on line...
-          leftMotor.drive(mspeed);      //...drive left side opposite to stay in place
+          leftMotor.drive(LINE_ADJ_SPEED);      //...drive left side opposite to stay in place
         }
       }
       if(lLineSide == LINE_INFRONT){ //If left side behind line...
-        leftMotor.drive(mspeed);        //...drive left side forward
+        leftMotor.drive(LINE_ADJ_SPEED);        //...drive left side forward
         if(rLineSide == ON_LINE){    //and if right side on line...
-          rightMotor.drive(-mspeed);     //...drive right side opposite to stay in place
+          rightMotor.drive(-LINE_ADJ_SPEED);     //...drive right side opposite to stay in place
         }
       }
       if(lLineSide == LINE_BEHIND){  //If left side in front of line...
-        leftMotor.drive(-mspeed);       //...drive left backward
+        leftMotor.drive(-LINE_ADJ_SPEED);       //...drive left backward
         if(rLineSide == ON_LINE){    //and if right side on line...
-          rightMotor.drive(mspeed);      //...drive right side opposite to stay in place
+          rightMotor.drive(LINE_ADJ_SPEED);      //...drive right side opposite to stay in place
         }
       }
         
