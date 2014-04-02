@@ -13,6 +13,14 @@ void FireSensorArray::attach(int pins[NUMFIRESENSORS]){
 	}
 }
 
+void FireSensorArray::flip(){
+	int tempPins[NUMFIRESENSORS];
+	for(int i=1; i <= NUMFIRESENSORS; i++){
+		tempPins[NUMFIRESENSORS-i] = fireSensePins[i-1];
+	}
+	fireSensePins = tempPins;
+}
+
 boolean FireSensorArray::isThereFire(){
 	for(int i=0; i<NUMFIRESENSORS; i++){
 		if(analogRead(fireSensePins[i])>FIRETHRESHOLD){

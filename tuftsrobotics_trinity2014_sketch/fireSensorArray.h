@@ -9,6 +9,7 @@ class FireSensorArray{
 	public:
 		FireSensorArray();
 		void attach(int pins[NUMFIRESENSORS]);
+		void flip();
 		boolean isThereFire();
 		int fireAngle();
 	private:
