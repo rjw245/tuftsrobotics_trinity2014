@@ -35,7 +35,7 @@ int FireSensorArray::fireAngle(){
       curMax = reading;
     }
   }
-  int angle = map((fireSensePins[NUMFIRESENSORS-1] - fireSensePins[0]),-curMax, curMax,-45,45);
+  int angle = map((analogRead(fireSensePins[NUMFIRESENSORS-1]) - analogRead(fireSensePins[0])),-curMax, curMax,-45,45);
   return angle;
 }
 

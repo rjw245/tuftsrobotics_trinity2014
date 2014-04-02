@@ -13,9 +13,9 @@
 #define distFrontPin          -1
 #define distLeftBackPin       A2
 #define distLeftFrontPin      A3
-#define fireSensePin1         -1
-#define fireSensePin2         -1
-#define fireSensePin3         -1
+#define fireSensePin1         A0
+#define fireSensePin2         A1
+#define fireSensePin3         A2
 #define fireSensePin4         -1
 #define fireSensePin5         -1
 
@@ -253,25 +253,46 @@ void sensorDiagnostics(){
     Serial.println("Irrelephant");
   }
   
-  Serial.print("LINE SENSOR - Left:             ");
+  Serial.print("LINE SENSOR - Left:            ");
   Serial.println(analogRead(lineLeftPin));
   
-  Serial.print("LINE SENSOR - Right:            ");
+  Serial.print("LINE SENSOR - Right:           ");
   Serial.println(analogRead(lineRightPin));
   
-  Serial.print("DISTANCE SENSOR - Left-Back:    ");
+  Serial.println();
+  
+  Serial.print("FIRE SENSOR - Left:              ");
+  Serial.println(analogRead(fireSensePin1));
+  
+  Serial.print("FIRE SENSOR - Center:            ");
+  Serial.println(analogRead(fireSensePin2));
+  
+  Serial.print("FIRE SENSOR - Right:             ");
+  Serial.println(analogRead(fireSensePin3));
+  
+  Serial.println();
+  
+  Serial.print("FIRE SENSOR - Angle:             ");
+  Serial.println(fireSense.fireAngle());
+  
+  Serial.print("FIRE SENSOR - Strength:             ");
+  Serial.println(fireSense.fireStrength());
+  
+  Serial.println();
+  
+  Serial.print("DISTANCE SENSOR - Left-Back:   ");
   Serial.println(analogRead(distLeftBackPin));
   
-  Serial.print("DISTANCE SENSOR - Left-Front:   ");
+  Serial.print("DISTANCE SENSOR - Left-Front:  ");
   Serial.println(analogRead(distLeftFrontPin));
   
-  Serial.print("DISTANCE SENSOR - Right-Back:   ");
+  Serial.print("DISTANCE SENSOR - Right-Back:  ");
   Serial.println(analogRead(distRightBackPin));
   
-  Serial.print("DISTANCE SENSOR - Right-Front:  ");
+  Serial.print("DISTANCE SENSOR - Right-Front: ");
   Serial.println(analogRead(distRightFrontPin));
   
-  Serial.print("DISTANCE SENSOR - Front:        ");
+  Serial.print("DISTANCE SENSOR - Front:       ");
   Serial.println(analogRead(distFrontPin));
   
   Serial.println("--------------------------------------------------");
