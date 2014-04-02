@@ -137,23 +137,28 @@ void loop() {
       */
       
       if(rLineSide == 2){
-        rLineSide = rmotorForward;
+        rLineSide = rmotorForward; //If forward, gets 1 (in front of line)
+                                   //If backward gets 0 (behind line)
+                                   
+                                   //This is done in case the robot is about to
+                                   //go back off the line, so we know what side
+                                   //of the line it must be on when it does
       }
       if (lLineSide == 2){
-        lLineSide = lmotorForward;
+        lLineSide = lmotorForward; //Ditto
       }
       
-      if (lineRightSensed){
+      if (lineRightSensed){        //If we are still on the line, store that fact
         rLineSide = 2;
       }
-      if (lineLeftSensed){
+      if (lineLeftSensed){         //...and for the left side too
         lLineSide = 2;
       }
       
-      if (rLineSide == 2 && lLineSide == 2){
+      if (rLineSide == 2 && lLineSide == 2){   //Both sides on line!
         Serial.println("ALIGNED WITH LINE!!");
-        delay(100);
-        STATE = INROOM;
+        delay(100);                            //Pause
+        STATE = INROOM;                        //and then change to next state
       }
       
       if(rLineSide==0){          //If right side behind line...
