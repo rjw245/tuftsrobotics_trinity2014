@@ -75,10 +75,6 @@ void setup() {
   pinMode(distLeftBackPin,INPUT);
   pinMode(distLeftFrontPin,INPUT);
   
-  pinMode(leftMotordig,OUTPUT);
-  pinMode(leftMotorpwm,OUTPUT);
-  pinMode(rightMotordig,OUTPUT);
-  pinMode(rightMotorpwm,OUTPUT);
   leftMotor.drive(200);
   rightMotor.drive(200);
   
