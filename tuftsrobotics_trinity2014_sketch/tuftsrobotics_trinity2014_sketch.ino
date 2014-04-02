@@ -30,10 +30,18 @@
 #define INROOM                2
 #define FOUNDFIRE             3
 #define RETURNHOME            4
-#define LINE                  5
-//Misc constants
+#define ALIGNLINE             5
+
+//Wall-follow constants
 #define FRONTOBSTACLEDIST     300
+
+//Line sense & alignment constants
 #define LINESENSED            500
+#define LINE_INFRONT          0
+#define LINE_BEHIND           1
+#define ON_LINE               2
+
+//Fire sensing constants
 #define FIRESENSED            50
 
 //Motor controller object
@@ -116,7 +124,7 @@ void loop() {
       }
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
       
-      //Look for lines. If found, change state
+      //Look for lines. If found, change state to aligning with line
       if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
         STATE = ALIGNLINE;
       }
@@ -136,60 +144,75 @@ void loop() {
       Serial.println(rLineSide);
       */
       
-      if(rLineSide == 2){
-        rLineSide = rmotorForward; //If forward, gets 1 (in front of line)
-                                   //If backward gets 0 (behind line)
+      //Currently on the line on right side?
+      if(rLineSide == ON_LINE){
+        
+        //If moving forward, moving past line -> LINE_BEHIND
+        //If moving backward, moving past line -> LINE_INFRONT
                                    
-                                   //This is done in case the robot is about to
-                                   //go back off the line, so we know what side
-                                   //of the line it must be on when it does
+        //This is done in case the robot is about to
+        //go back off the line, so we know what side
+        //of the line it must be on when it does
+        
+        if(rmotorForward){
+          rLineSide = LINE_BEHIND;
+        }
+        else{
+          rLineSide = LINE_INFRONT;
+        }
+                                   
       }
-      if (lLineSide == 2){
-        lLineSide = lmotorForward; //Ditto
+      if (lLineSide == ON_LINE){
+        if(lmotorForward){         //Ditto
+          lLineSide = LINE_BEHIND;
+        }
+        else{
+          lLineSide = LINE_INFRONT;
+        }
       }
       
       if (lineRightSensed){        //If we are still on the line, store that fact
-        rLineSide = 2;
+        rLineSide = ON_LINE;
       }
       if (lineLeftSensed){         //...and for the left side too
-        lLineSide = 2;
+        lLineSide = ON_LINE;
       }
       
-      if (rLineSide == 2 && lLineSide == 2){   //Both sides on line!
+      if (rLineSide == ON_LINE && lLineSide == ON_LINE){   //Both sides on line!
         Serial.println("ALIGNED WITH LINE!!");
-        delay(100);                            //Pause
-        STATE = INROOM;                        //and then change to next state
+        delay(100);                                        //Pause
+        STATE = INROOM;                                    //and then change to next state
       }
       
-      if(rLineSide==0){          //If right side behind line...
-        motor2.drive(mspeed);    //...drive right side forward
+      if(rLineSide == LINE_INFRONT){ //If right side behind line...
+        motor2.drive(mspeed);        //...drive right side forward
         rmotorForward = true;
-        if(lLineSide==2){        //..and if left side on line...
-          motor1.drive(-mspeed); //...drive left side opposite to stay in place
+        if(lLineSide == ON_LINE){    //..and if left side on line...
+          motor1.drive(-mspeed);     //...drive left side opposite to stay in place
           lmotorForward = false;
         }
       }
-      if(rLineSide==1){          //If right side in front of line...
-        motor2.drive(-mspeed);   //...drive right side backward
+      if(rLineSide == LINE_BEHIND){  //If right side in front of line...
+        motor2.drive(-mspeed);       //...drive right side backward
         rmotorForward = false;
-        if(lLineSide==2){        //..and if left side on line...
-          motor1.drive(mspeed);  //...drive left side opposite to stay in place
+        if(lLineSide == ON_LINE){    //..and if left side on line...
+          motor1.drive(mspeed);      //...drive left side opposite to stay in place
           lmotorForward = true;
         }
       }
-      if(lLineSide==0){          //If left side behind line...
-        motor1.drive(mspeed);    //...drive left side forward
+      if(lLineSide == LINE_INFRONT){ //If left side behind line...
+        motor1.drive(mspeed);        //...drive left side forward
         lmotorForward = true;
-        if(rLineSide==2){        //and if right side on line...
-          motor2.drive(-mspeed); //...drive right side opposite to stay in place
+        if(rLineSide == ON_LINE){    //and if right side on line...
+          motor2.drive(-mspeed);     //...drive right side opposite to stay in place
           rmotorForward = true;
         }
       }
-      if(lLineSide==1){         //If left side in front of line...
-        motor1.drive(-mspeed);  //...drive left backward
+      if(lLineSide == LINE_BEHIND){  //If left side in front of line...
+        motor1.drive(-mspeed);       //...drive left backward
         lmotorForward = false;
-        if(rLineSide==2){       //and if right side on line...
-          motor2.drive(mspeed); //...drive right side opposite to stay in place
+        if(rLineSide == ON_LINE){    //and if right side on line...
+          motor2.drive(mspeed);      //...drive right side opposite to stay in place
           rmotorForward = false;
         }
       }

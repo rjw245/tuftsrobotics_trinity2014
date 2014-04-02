@@ -18,7 +18,9 @@ void FireSensorArray::flip(){
 	for(int i=1; i <= NUMFIRESENSORS; i++){
 		tempPins[NUMFIRESENSORS-i] = fireSensePins[i-1];
 	}
-	fireSensePins = tempPins;
+	for(int i=0; i < NUMFIRESENSORS; i++){
+		fireSensePins[i] = tempPins[i];
+	}
 }
 
 boolean FireSensorArray::isThereFire(){
