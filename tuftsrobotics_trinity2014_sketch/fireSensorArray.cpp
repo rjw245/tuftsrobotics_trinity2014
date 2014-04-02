@@ -24,12 +24,7 @@ void FireSensorArray::flip(){
 }
 
 boolean FireSensorArray::isThereFire(){
-	for(int i=0; i<NUMFIRESENSORS; i++){
-		if(analogRead(fireSensePins[i])>FIRETHRESHOLD){
-			return true;
-		}
-	}
-	return false;
+	return (fireStrength()>FIRETHRESHOLD);
 }
 
 int FireSensorArray::fireAngle(){
@@ -42,5 +37,16 @@ int FireSensorArray::fireAngle(){
   }
   int angle = map((fireSensePins[NUMFIRESENSORS-1] - fireSensePins[0]),-curMax, curMax,-45,45);
   return angle;
+}
+
+int FireSensorArray::fireStrength(){
+  int curMax = 0;
+  for(int i = 0; i < NUMFIRESENSORS; i++) {
+    int reading = analogRead(fireSensePins[i]);
+    if(reading > curMax) {
+      curMax = reading;
+    }
+  }
+  return curMax;
 }
 

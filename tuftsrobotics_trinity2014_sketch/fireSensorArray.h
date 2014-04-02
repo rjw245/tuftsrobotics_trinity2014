@@ -12,6 +12,7 @@ class FireSensorArray{
 		void flip();
 		boolean isThereFire();
 		int fireAngle();
+                int fireStrength();
 	private:
 		int fireSensePins[NUMFIRESENSORS];
 };
