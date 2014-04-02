@@ -18,11 +18,11 @@
 #define fireSense4            -1
 #define fireSense5            -1
 
-//MOTOR 2 IS ON THE RIGHT FOR DELUX
-#define motor1dig             4
-#define motor1pwm             5
-#define motor2dig             7
-#define motor2pwm             6
+//Motor pins
+#define leftMotordig           4
+#define leftMotorpwm           5
+#define rightMotordig          7
+#define rightMotorpwm          6
 
 //Possible States
 #define INITIALIZATION        0
@@ -48,22 +48,22 @@
 MotorControl mcontrol(PROPORTIONAL);
 
 //Motor objects
-Motor motor1;
-Motor motor2;
+Motor leftMotor;
+Motor rightMotor;
 
 //Start state is INITIALIZATION
 int STATE = INITIALIZATION;
 
 void setup() {
   //Set up motors with proper pins
-  motor1.attach(motor1dig,motor1pwm);
-  motor2.attach(motor2dig,motor2pwm);
+  leftMotor.attach(leftMotordig,leftMotorpwm);
+  rightMotor.attach(rightMotordig,rightMotorpwm);
   
-  //Get motor 1 in proper orientation
-  motor1.flip();
+  //Get left motor in proper orientation
+  leftMotor.flip();
   
   //Give these motors to the motor controller for wall following
-  mcontrol.attach(&motor1,&motor2);
+  mcontrol.attach(&leftMotor,&rightMotor);
   
   
   Serial.begin(9600);
@@ -75,19 +75,17 @@ void setup() {
   pinMode(distLeftBackPin,INPUT);
   pinMode(distLeftFrontPin,INPUT);
   
-  pinMode(motor1dig,OUTPUT);
-  pinMode(motor1pwm,OUTPUT);
-  pinMode(motor2dig,OUTPUT);
-  pinMode(motor2pwm,OUTPUT);
-  motor1.drive(200);
-  motor2.drive(200);
+  pinMode(leftMotordig,OUTPUT);
+  pinMode(leftMotorpwm,OUTPUT);
+  pinMode(rightMotordig,OUTPUT);
+  pinMode(rightMotorpwm,OUTPUT);
+  leftMotor.drive(200);
+  rightMotor.drive(200);
   
 
 }
 
 //These declarations are for line adjustment
-boolean rmotorForward = true;
-boolean lmotorForward = true;
 int lineLeft,lineRight;
 boolean lineLeftSensed, lineRightSensed;
 int rLineSide = 0, lLineSide = 0; //0 = behind line,
@@ -154,7 +152,7 @@ void loop() {
         //go back off the line, so we know what side
         //of the line it must be on when it does
         
-        if(rmotorForward){
+        if(rightMotor.isMovingForward()){
           rLineSide = LINE_BEHIND;
         }
         else{
@@ -163,7 +161,7 @@ void loop() {
                                    
       }
       if (lLineSide == ON_LINE){
-        if(lmotorForward){         //Ditto
+        if(leftMotor.isMovingForward()){         //Ditto
           lLineSide = LINE_BEHIND;
         }
         else{
@@ -185,35 +183,27 @@ void loop() {
       }
       
       if(rLineSide == LINE_INFRONT){ //If right side behind line...
-        motor2.drive(mspeed);        //...drive right side forward
-        rmotorForward = true;
+        rightMotor.drive(mspeed);        //...drive right side forward
         if(lLineSide == ON_LINE){    //..and if left side on line...
-          motor1.drive(-mspeed);     //...drive left side opposite to stay in place
-          lmotorForward = false;
+          leftMotor.drive(-mspeed);     //...drive left side opposite to stay in place
         }
       }
       if(rLineSide == LINE_BEHIND){  //If right side in front of line...
-        motor2.drive(-mspeed);       //...drive right side backward
-        rmotorForward = false;
+        rightMotor.drive(-mspeed);       //...drive right side backward
         if(lLineSide == ON_LINE){    //..and if left side on line...
-          motor1.drive(mspeed);      //...drive left side opposite to stay in place
-          lmotorForward = true;
+          leftMotor.drive(mspeed);      //...drive left side opposite to stay in place
         }
       }
       if(lLineSide == LINE_INFRONT){ //If left side behind line...
-        motor1.drive(mspeed);        //...drive left side forward
-        lmotorForward = true;
+        leftMotor.drive(mspeed);        //...drive left side forward
         if(rLineSide == ON_LINE){    //and if right side on line...
-          motor2.drive(-mspeed);     //...drive right side opposite to stay in place
-          rmotorForward = true;
+          rightMotor.drive(-mspeed);     //...drive right side opposite to stay in place
         }
       }
       if(lLineSide == LINE_BEHIND){  //If left side in front of line...
-        motor1.drive(-mspeed);       //...drive left backward
-        lmotorForward = false;
+        leftMotor.drive(-mspeed);       //...drive left backward
         if(rLineSide == ON_LINE){    //and if right side on line...
-          motor2.drive(mspeed);      //...drive right side opposite to stay in place
-          rmotorForward = false;
+          rightMotor.drive(mspeed);      //...drive right side opposite to stay in place
         }
       }
         
@@ -294,14 +284,14 @@ void sensorDiagnostics(){
 
 //Rotate clockwise 90 degrees
 void rotCW90(){
-  motor1.drive(200);
-  motor2.drive(-200);
+  leftMotor.drive(200);
+  rightMotor.drive(-200);
   delay(400);
 }
 
 //Rotate counterclockwise 90 degrees
 void rotCCW90(){
-  motor1.drive(-200);
-  motor2.drive(200);
+  leftMotor.drive(-200);
+  rightMotor.drive(200);
   delay(400);
 }

@@ -21,6 +21,8 @@ void Motor::flip(){
 void Motor::drive(int speed){
 	if(speed>255)  speed=255;
 	if(speed<-255) speed=-255;
+	if(speed>=0) isForward = true;
+	else         isForward = false;
 	int abs_speed = abs(speed);
 	if(!flipped){
 		if(speed>=0){
@@ -43,4 +45,8 @@ void Motor::drive(int speed){
 
 void Motor::brake(){
 	drive(0);
+}
+
+boolean Motor::isMovingForward(){
+  return isForward;
 }

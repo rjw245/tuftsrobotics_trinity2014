@@ -10,13 +10,15 @@ class Motor{
     public:
         Motor();
         void attach(int dig, int pwm);
-      		void flip();
-      		void drive(int speed);
-      		void brake();
+      	void flip();
+      	void drive(int speed);
+      	void brake();
+	boolean isMovingForward();
 
     private:
         int digPin;
         int pwmPin;
-		boolean flipped;
+	boolean flipped;
+        boolean isForward;
 };
 #endif MOTOR_H
