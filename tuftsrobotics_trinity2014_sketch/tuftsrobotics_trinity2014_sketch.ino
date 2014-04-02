@@ -13,11 +13,11 @@
 #define distFrontPin          -1
 #define distLeftBackPin       A2
 #define distLeftFrontPin      A3
-#define fireSense1            -1
-#define fireSense2            -1
-#define fireSense3            -1
-#define fireSense4            -1
-#define fireSense5            -1
+#define fireSensePin1         -1
+#define fireSensePin2         -1
+#define fireSensePin3         -1
+#define fireSensePin4         -1
+#define fireSensePin5         -1
 
 //Motor pins
 #define leftMotordig           4
@@ -46,7 +46,12 @@
 #define FIRESENSED            50
 
 //Motor controller object
+//(motorcontrol.h)
 MotorControl mcontrol(PROPORTIONAL);
+
+//Fire sensor object
+//(fireSensorArray.h)
+FireSensorArray fireSense;
 
 //Motor objects
 Motor leftMotor;
@@ -65,6 +70,11 @@ void setup() {
   
   //Give these motors to the motor controller for wall following
   mcontrol.attach(&leftMotor,&rightMotor);
+  
+  //Initialize array of fire sense pins
+  //and pass it to the fire sensor array object
+  int fireSensePins[3] = {fireSensePin1,fireSensePin2,fireSensePin3};
+  fireSense.attach(fireSensePins);
   
   
   Serial.begin(9600);
@@ -205,11 +215,7 @@ void loop() {
     case INROOM:
       //IF fire sensed
 
-      if(analogRead(fireSense1)>FIRESENSED
-      || analogRead(fireSense2)>FIRESENSED
-      || analogRead(fireSense3)>FIRESENSED
-      || analogRead(fireSense4)>FIRESENSED
-      || analogRead(fireSense5)>FIRESENSED){
+      if(fireSense.isThereFire()){
         STATE = FOUNDFIRE;
       }
       else{
