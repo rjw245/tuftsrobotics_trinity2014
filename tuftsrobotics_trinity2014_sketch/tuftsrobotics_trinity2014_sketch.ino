@@ -183,6 +183,8 @@ void loop() {
         STATE = INROOM;                                    //and then change to next state
       }
       
+      
+      //Drive motors appropriately
       if(rLineSide == LINE_INFRONT){        //If right side behind line...
         rightMotor.drive(LINE_ADJ_SPEED);   //...drive right side forward
         if(lLineSide == ON_LINE){           //..and if left side on line...
