@@ -74,11 +74,6 @@ void setup() {
   pinMode(distFrontPin,INPUT);
   pinMode(distLeftBackPin,INPUT);
   pinMode(distLeftFrontPin,INPUT);
-  
-  leftMotor.drive(200);
-  rightMotor.drive(200);
-  
-
 }
 
 //These declarations are for line adjustment
