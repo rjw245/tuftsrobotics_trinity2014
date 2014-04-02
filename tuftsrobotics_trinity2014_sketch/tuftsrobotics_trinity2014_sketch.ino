@@ -267,7 +267,7 @@ void sensorDiagnostics(){
   Serial.print("DISTANCE SENSOR - Front:        ");
   Serial.println(analogRead(distFrontPin));
   
-  Serial.println();
+  Serial.println("--------------------------------------------------");
 }
 
 
