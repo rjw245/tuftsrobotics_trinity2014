@@ -156,35 +156,35 @@ void loop() {
         STATE = INROOM;
       }
       
-      if(rLineSide==0){
-        motor2.drive(mspeed);
+      if(rLineSide==0){          //If right side behind line...
+        motor2.drive(mspeed);    //...drive right side forward
         rmotorForward = true;
-        if(lLineSide==2){
-          motor1.drive(-mspeed);
+        if(lLineSide==2){        //..and if left side on line...
+          motor1.drive(-mspeed); //...drive left side opposite to stay in place
           lmotorForward = false;
         }
       }
-      if(rLineSide==1){
-        motor2.drive(-mspeed);
+      if(rLineSide==1){          //If right side in front of line...
+        motor2.drive(-mspeed);   //...drive right side backward
         rmotorForward = false;
-        if(lLineSide==2){
-          motor1.drive(mspeed);
+        if(lLineSide==2){        //..and if left side on line...
+          motor1.drive(mspeed);  //...drive left side opposite to stay in place
           lmotorForward = true;
         }
       }
-      if(lLineSide==0){
-        motor1.drive(mspeed);
-        lmotorForward = false;
-        if(rLineSide==2){
-          motor2.drive(-mspeed);
+      if(lLineSide==0){          //If left side behind line...
+        motor1.drive(mspeed);    //...drive left side forward
+        lmotorForward = true;
+        if(rLineSide==2){        //and if right side on line...
+          motor2.drive(-mspeed); //...drive right side opposite to stay in place
           rmotorForward = true;
         }
       }
-      if(lLineSide==1){
-        motor1.drive(-mspeed);
-        lmotorForward = true;
-        if(rLineSide==2){
-          motor2.drive(mspeed);
+      if(lLineSide==1){         //If left side in front of line...
+        motor1.drive(-mspeed);  //...drive left backward
+        lmotorForward = false;
+        if(rLineSide==2){       //and if right side on line...
+          motor2.drive(mspeed); //...drive right side opposite to stay in place
           rmotorForward = false;
         }
       }
