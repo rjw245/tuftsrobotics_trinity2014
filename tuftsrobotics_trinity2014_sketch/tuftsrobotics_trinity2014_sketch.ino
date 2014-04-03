@@ -8,14 +8,14 @@
 //DEFINE ALL PINS HERE
 #define lineLeftPin           A0
 #define lineRightPin          A1
-#define distRightBackPin      A4
-#define distRightFrontPin     A5
+#define distRightBackPin      A12
+#define distRightFrontPin     A11
 #define distFrontPin          -1
-#define distLeftBackPin       A2
-#define distLeftFrontPin      A3
-#define fireSensePin1         A0
-#define fireSensePin2         A1
-#define fireSensePin3         A2
+#define distLeftBackPin       A10
+#define distLeftFrontPin      A13
+#define fireSensePin1         A2
+#define fireSensePin2         A3
+#define fireSensePin3         A4
 #define fireSensePin4         -1
 #define fireSensePin5         -1
 
@@ -48,7 +48,7 @@
 
 //Motor controller object
 //(motorcontrol.h)
-MotorControl mcontrol(PROPORTIONAL);
+MotorControl mcontrol(DERIVATIVE);
 
 //Fire sensor object
 //(fireSensorArray.h)
@@ -59,7 +59,7 @@ Motor leftMotor;
 Motor rightMotor;
 
 //Start state is INITIALIZATION
-int STATE = INITIALIZATION;
+int STATE = WALLFOLLOW;
 
 void setup() {
   //Set up motors with proper pins
@@ -117,15 +117,16 @@ void loop() {
       break;
       
     case WALLFOLLOW:
+      //Serial.println("WALL FOLLOWING");
       //Look for front obstacles:
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
-        rotCCW90();
+        //rotCCW90();
       }
-      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),140);
       
       //Look for lines. If found, change state to aligning with line
       if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
-        STATE = ALIGNLINE;
+        //STATE = ALIGNLINE;
       }
       
       break;
@@ -275,7 +276,7 @@ void sensorDiagnostics(){
   Serial.print("FIRE SENSOR - Angle:             ");
   Serial.println(fireSense.fireAngle());
   
-  Serial.print("FIRE SENSOR - Strength:             ");
+  Serial.print("FIRE SENSOR - Strength:          ");
   Serial.println(fireSense.fireStrength());
   
   Serial.println();

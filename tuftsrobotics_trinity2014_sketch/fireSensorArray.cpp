@@ -36,6 +36,7 @@ int FireSensorArray::fireAngle(){
     }
   }
   int angle = map((analogRead(fireSensePins[NUMFIRESENSORS-1]) - analogRead(fireSensePins[0])),-curMax, curMax,-45,45);
+  if(curMax<15) angle=0; //No fire to read, don't give noise back as data
   return angle;
 }
 

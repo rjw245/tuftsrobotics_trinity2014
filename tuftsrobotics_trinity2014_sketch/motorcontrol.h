@@ -9,8 +9,8 @@
 #define INTEGRAL     2
 
 #define KP           0.6
-#define KD           0.7
-#define KI           0.6
+#define KD           0.8
+#define KI           0.7
 
 #define OPT          228
 
@@ -36,5 +36,9 @@ class MotorControl{
 		Motor* motor1;
 		Motor* motor2;
                 int controlType;
+                int l_last;
+                int r_last;
+                float I_l;
+                float I_r;
 };
 	#endif DUALMOTOR_H
