@@ -50,8 +50,8 @@ void MotorControl::drive(int p_left, int p_right, int inertia){
     
   }
   else if(controlType == DERIVATIVE){
-
-  /*  //base errors
+  /*
+   //base errors
     int l_error = (p_left - OPT);
     int r_error = (p_right - OPT);
     
@@ -71,11 +71,11 @@ void MotorControl::drive(int p_left, int p_right, int inertia){
     motor2->drive(rightSpeed);
     //keep error values for next iter.
     l_last = l_error;
-    r_last = r_error;*/
-    
+    r_last = r_error;
+    */
       int dist_from_opt = OPT - (p_left + p_right)/2; //dist_from_opt negative when too close
       int angle = p_right - p_left; //angle positive when pointed at wall
-      int ideal_angle = 1 * dist_from_opt; //scale??
+      int ideal_angle = 0.8 * dist_from_opt; //scale??
       
       int error = (ideal_angle - angle);
       
@@ -96,23 +96,30 @@ void MotorControl::drive(int p_left, int p_right, int inertia){
       
       l_last = error;
       r_last = error;
+      
     
   }
   else if(controlType == INTEGRAL){
     
      //base error
-    int l_error = (p_left - OPT);
-    int r_error = (p_right - OPT);
+    //int l_error = (p_left - OPT);
+    //int r_error = (p_right - OPT);
+    
+    int dist_from_opt = OPT - (p_left + p_right)/2; //dist_from_opt negative when too close
+      int angle = p_right - p_left; //angle positive when pointed at wall
+      int ideal_angle = 1 * dist_from_opt; //scale??
+      
+      int error = (ideal_angle - angle);
     //derivative error
-    int D_l = (l_error-l_last)*KD;
-    int D_r = (r_error-r_last)*KD;
+    int D_l = (error-l_last)*KD;
+    int D_r = (error-r_last)*KD;
     //porportional error
-    int P_l  = KP * l_error  + inertia;
-    int P_r = KP * r_error + inertia; 
+    int P_l  = KP * error  + inertia;
+    int P_r = KP * error + inertia; 
     //integral accumulative error
-    I_l += l_error;
+    I_l += error;
     I_l = I_l*KI;
-    I_r += r_error;
+    I_r += error;
     I_r = I_r*KI;
     
     int leftSpeed = P_l + D_l + I_l;
@@ -122,8 +129,8 @@ void MotorControl::drive(int p_left, int p_right, int inertia){
     motor1->drive(leftSpeed);
     motor2->drive(rightSpeed);
 
-    l_last = l_error;
-    r_last = r_error;
+    l_last = error;
+    r_last = error;
   }
 }
 

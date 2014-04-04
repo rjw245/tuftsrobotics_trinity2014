@@ -1,3 +1,5 @@
+#include <Servo.h>
+
 #include "motor.h"
 #include "motorcontrol.h"
 #include "fireSensorArray.h"
@@ -10,8 +12,8 @@
 #define lineRightPin          A1
 #define distRightBackPin      A12
 #define distRightFrontPin     A11
-#define distFrontPin          -1
-#define distLeftBackPin       A10
+#define distFrontPin          A10
+#define distLeftBackPin       A14
 #define distLeftFrontPin      A13
 #define fireSensePin1         A2
 #define fireSensePin2         A3
@@ -34,7 +36,7 @@
 #define ALIGNLINE             5
 
 //Wall-follow constants
-#define FRONTOBSTACLEDIST     300
+#define FRONTOBSTACLEDIST     400
 
 //Line sense & alignment constants
 #define LINESENSED            500
@@ -54,17 +56,24 @@ MotorControl mcontrol(DERIVATIVE);
 //(fireSensorArray.h)
 FireSensorArray fireSense;
 
+
 //Motor objects
 Motor leftMotor;
 Motor rightMotor;
 
+//Servo for canister
+Servo pullServo;
+
 //Start state is INITIALIZATION
-int STATE = WALLFOLLOW;
+int STATE = FOUNDFIRE;
 
 void setup() {
   //Set up motors with proper pins
   leftMotor.attach(leftMotordig,leftMotorpwm);
   rightMotor.attach(rightMotordig,rightMotorpwm);
+  
+  pullServo.attach(10);
+  pullServo.write(10);
   
   //Get left motor in proper orientation
   leftMotor.flip();
@@ -101,13 +110,13 @@ void loop() {
       //Rotate 90 deg CW at start
       rotCW90();
       
-      //Wall follow
-      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
-      
       //Is there something in front of me? If so, rotate 90 CCW
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
-        rotCCW90();
+        //leftMotor.drive(-200);
+        //rightMotor.drive(200);
       }
+      //Wall follow
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
       
       //After 3 seconds, initialization is over, so go to next state
       if(millis()>=3000){
@@ -119,10 +128,13 @@ void loop() {
     case WALLFOLLOW:
       //Serial.println("WALL FOLLOWING");
       //Look for front obstacles:
+      //Is there something in front of me? If so, rotate 90 CCW
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
-        //rotCCW90();
+        //leftMotor.drive(-200);
+        //rightMotor.drive(200);
       }
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),140);
+      
       
       //Look for lines. If found, change state to aligning with line
       if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
@@ -181,7 +193,7 @@ void loop() {
       if (rLineSide == ON_LINE && lLineSide == ON_LINE){   //Both sides on line!
         Serial.println("ALIGNED WITH LINE!!");
         delay(100);                                        //Pause
-        STATE = INROOM;                                    //and then change to next state
+        //STATE = INROOM;                                    //and then change to next state
       }
       
       
@@ -231,6 +243,13 @@ void loop() {
       //DRIVE FORWARD UNTIL FIRE READS SIGNIFICANTLY HIGH
       //TRIGGER CO2
       //STATE = RETURNHOME;
+      //if(millis()%3000==0){
+        pullServo.write(80);
+        delay(400);
+        pullServo.write(10);
+        delay(1000);
+        STATE = RETURNHOME;
+     // }
       
       break;      
     case RETURNHOME:

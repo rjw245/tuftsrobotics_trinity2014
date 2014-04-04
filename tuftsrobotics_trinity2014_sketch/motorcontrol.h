@@ -8,9 +8,9 @@
 #define DERIVATIVE   1
 #define INTEGRAL     2
 
-#define KP           0.6
+#define KP           0.75
 #define KD           0.8
-#define KI           0.7
+#define KI           0.3
 
 #define OPT          260
 
