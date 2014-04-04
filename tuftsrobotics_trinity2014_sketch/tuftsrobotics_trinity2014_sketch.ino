@@ -8,24 +8,49 @@
 #define IS_DELUX              1
 
 //DEFINE ALL PINS HERE
-#define lineLeftPin           A0
-#define lineRightPin          A1
-#define distRightBackPin      A12
-#define distRightFrontPin     A11
-#define distFrontPin          A10
-#define distLeftBackPin       A14
-#define distLeftFrontPin      A13
-#define fireSensePin1         A2
-#define fireSensePin2         A3
-#define fireSensePin3         A4
-#define fireSensePin4         -1
-#define fireSensePin5         -1
+#if IS_DELUX
+  #define lineLeftPin           A0
+  #define lineRightPin          A1
+  #define distRightBackPin      A12
+  #define distRightFrontPin     A11
+  #define distFrontPin          A10
+  #define distLeftBackPin       A14
+  #define distLeftFrontPin      A13
+  #define fireSensePin1         A3
+  #define fireSensePin2         A2
+  #define fireSensePin3         A4
+  #define fireSensePin4         -1
+  #define fireSensePin5         -1
+  #define startButton           8
 
-//Motor pins
-#define leftMotordig           4
-#define leftMotorpwm           5
-#define rightMotordig          7
-#define rightMotorpwm          6
+  //Motor pins
+  #define leftMotordig           4
+  #define leftMotorpwm           5
+  #define rightMotordig          7
+  #define rightMotorpwm          6
+  
+#else
+
+  #define lineLeftPin           A0
+  #define lineRightPin          A1
+  #define distRightBackPin      A12
+  #define distRightFrontPin     A11
+  #define distFrontPin          A10
+  #define distLeftBackPin       A14
+  #define distLeftFrontPin      A13
+  #define fireSensePin1         A3
+  #define fireSensePin2         A2
+  #define fireSensePin3         A4
+  #define fireSensePin4         -1
+  #define fireSensePin5         -1
+  #define startButton           8
+
+  //Motor pins
+  #define leftMotordig           4
+  #define leftMotorpwm           5
+  #define rightMotordig          7
+  #define rightMotorpwm          6
+#endif
 
 //Possible States
 #define INITIALIZATION        0
@@ -34,6 +59,8 @@
 #define FOUNDFIRE             3
 #define RETURNHOME            4
 #define ALIGNLINE             5
+#define PUTOUTFIRE            6
+#define ALIGNFIRE             7
 
 //Wall-follow constants
 #define FRONTOBSTACLEDIST     400
@@ -44,9 +71,11 @@
 #define LINE_BEHIND           1
 #define ON_LINE               2
 #define LINE_ADJ_SPEED        180
+#define LINESENSING_INVERTED  0 //1 = look for white, 0 = look for black
 
 //Fire sensing constants
 #define FIRESENSED            50
+#define FIRECLOSE             600
 
 //Motor controller object
 //(motorcontrol.h)
@@ -65,7 +94,7 @@ Motor rightMotor;
 Servo pullServo;
 
 //Start state is INITIALIZATION
-int STATE = FOUNDFIRE;
+int STATE = INITIALIZATION;
 
 void setup() {
   //Set up motors with proper pins
@@ -95,6 +124,11 @@ void setup() {
   pinMode(distFrontPin,INPUT);
   pinMode(distLeftBackPin,INPUT);
   pinMode(distLeftFrontPin,INPUT);
+  pinMode(startButton,INPUT);
+  
+  //Wait for start
+  while(digitalRead(startButton)==LOW);
+  Serial.println("Started");
 }
 
 //These declarations are for line adjustment
@@ -103,6 +137,11 @@ boolean lineLeftSensed, lineRightSensed;
 int rLineSide = LINE_INFRONT;   //Constants define
 int lLineSide = LINE_INFRONT;   //at top of code
 //END DECLARATIONS FOR LINE ADJUSTMENT
+
+//These declarations are for fire sensing
+int fire_motinertia = 140;
+int fire_motcorrection = 60;
+//END DECLARATIONS FOR FIRE SENSING
 
 void loop() {
   switch(STATE){
@@ -137,9 +176,15 @@ void loop() {
       
       
       //Look for lines. If found, change state to aligning with line
-      if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
-        //STATE = ALIGNLINE;
-      }
+      #if LINESENSING_INVERTED
+        if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
+          //STATE = ALIGNLINE;
+        }
+      #else
+        if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
+          //STATE = ALIGNLINE;
+        }
+      #endif
       
       break;
      
@@ -147,8 +192,14 @@ void loop() {
     case ALIGNLINE:
       lineLeft  = analogRead(lineLeftPin);
       lineRight = analogRead(lineRightPin);
-      lineLeftSensed  = (lineLeft < LINESENSED);
-      lineRightSensed = (lineRight < LINESENSED);
+      
+      #if LINESENSING_INVERTED
+        lineLeftSensed  = (lineLeft  > LINESENSED);
+        lineRightSensed = (lineRight > LINESENSED);
+      #else
+        lineLeftSensed  = (lineLeft  < LINESENSED);
+        lineRightSensed = (lineRight < LINESENSED);
+      #endif
       /*
       Serial.print("Left line side: ");
       Serial.println(lLineSide);
@@ -243,15 +294,30 @@ void loop() {
       //DRIVE FORWARD UNTIL FIRE READS SIGNIFICANTLY HIGH
       //TRIGGER CO2
       //STATE = RETURNHOME;
-      //if(millis()%3000==0){
-        pullServo.write(80);
-        delay(400);
-        pullServo.write(10);
-        delay(1000);
-        STATE = RETURNHOME;
-     // }
+      if(fireSense.fireStrength()>=FIRECLOSE){
+        fire_motinertia = 0;
+      }
+      if(abs(fireSense.fireAngle())>=7){
+        leftMotor.drive(fire_motinertia + fire_motcorrection);
+        rightMotor.drive(fire_motinertia - fire_motcorrection);
+      }
+      else{
+        STATE = ALIGNFIRE;
+      }
       
-      break;      
+      break;
+      
+    case ALIGNFIRE:
+      
+      
+    case PUTOUTFIRE:
+      pullServo.write(160);
+      delay(1200);
+      pullServo.write(10);
+      delay(1000);
+      STATE = RETURNHOME;
+      break;
+      
     case RETURNHOME:
       
       
