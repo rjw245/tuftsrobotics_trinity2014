@@ -72,18 +72,24 @@
 #define FRONTOBSTACLEDIST     400
 
 //Line sense & alignment constants
-#define LINESENSED            50
+#define LINESENSING_INVERTED  1     //1 = look for black, 0 = look for white
+
+#if LINESENSING_INVERTED
+  #define LINESENSED            700
+#else
+  #defife LINESENSED            50
+#endif
+
 #define LINE_INFRONT          0
 #define LINE_BEHIND           1
 #define ON_LINE               2
 #define LINE_ADJ_SPEED        80
-#define LINESENSING_INVERTED  1 //1 = look for white, 0 = look for black
 
 //Fire sensing constants
-#define FIRESENSED            50
-#define FIRECLOSE             600
+#define FIRESENSED            40
+#define FIRECLOSE             575
 #define FIREANGLETHRESH       4
-#define FIRESWEEPTIME         500
+#define FIRESWEEPTIME         200
 
 //Motor controller object
 //(motorcontrol.h)
@@ -114,7 +120,7 @@ void setup() {
   rightMotor.attach(rightMotordig,rightMotorpwm);
   
   pullServo.attach(10);
-  //pullServo.write(SERVO_LOOSE);
+  pullServo.write(SERVO_LOOSE);
   
   //Get left motor in proper orientation
   leftMotor.flip();
@@ -225,6 +231,10 @@ void loop() {
       #if LINESENSING_INVERTED
         if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
           STATE = ALIGNLINE;
+          stateStart = time;
+          #if DEBUG
+            Serial.println("Changed state to ALIGNLINE");
+          #endif
         }
       #else
         if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
@@ -391,7 +401,7 @@ void loop() {
         if(fStrength>=FIRECLOSE){
           leftMotor.brake();
           rightMotor.brake();
-          STATE = ALIGNFIRE;
+          STATE = PUTOUTFIRE;
           stateStart = time;
         }
       //}
@@ -403,8 +413,8 @@ void loop() {
       //Sweep left
       if(time-stateStart<FIRESWEEPTIME)
       {
-        leftMotor.drive(50);
-        rightMotor.drive(-50);
+        leftMotor.drive(100);
+        rightMotor.drive(-100);
         curFireStrength = fireSense.fireStrength();
         if(maxFireStrength<curFireStrength){
           maxFireStrength=curFireStrength;
@@ -412,8 +422,8 @@ void loop() {
       }
       //Sweep right
       else if(time-stateStart<FIRESWEEPTIME*3){
-        leftMotor.drive(50);
-        rightMotor.drive(-50);
+        leftMotor.drive(-100);
+        rightMotor.drive(100);
         curFireStrength = fireSense.fireStrength();
         if(maxFireStrength<curFireStrength){
           maxFireStrength=curFireStrength;
@@ -423,8 +433,8 @@ void loop() {
       //ideally pointing right at fire
       else{
         if(fireSense.fireStrength()<maxFireStrength && !maxFireFound){
-          leftMotor.drive(-40);
-          rightMotor.drive(40);
+          leftMotor.drive(70);
+          rightMotor.drive(-70);
         }
         else{
           maxFireFound = true;
@@ -534,11 +544,12 @@ void rotCCW90(){
 }
 
 void leaveRoom(){
-  rotCCW90();
-  rotCCW90();
+  leftMotor.drive(-255);
+  rightMotor.drive(255);
+  delay(1700);
   leftMotor.drive(250);
   rightMotor.drive(250);
-  delay(800);
+  delay(1000);
   leftMotor.brake();
   rightMotor.brake();
 }
@@ -548,7 +559,7 @@ void extinguish(){
   for(pos = SERVO_LOOSE; pos <= SERVO_TAUT; pos += 1) // goes from 0 degrees to 180 degrees 
   {                                  // in steps of 1 degree 
     pullServo.write(pos);              // tell servo to go to position in variable 'pos' 
-    delay(11);                       // waits 15ms for the servo to reach the position 
+    delay(8);                       // waits 15ms for the servo to reach the position 
   }
   
   for(pos = SERVO_TAUT; pos>=SERVO_LOOSE; pos -= 1)     // goes from 180 degrees to 0 degrees 
