@@ -22,6 +22,7 @@
   #define fireSensePin4         -1
   #define fireSensePin5         -1
   #define startButton           8
+  #define servoPin              10
 
   //Motor pins
   #define leftMotordig           4
@@ -43,7 +44,8 @@
   #define fireSensePin3         A4
   #define fireSensePin4         -1
   #define fireSensePin5         -1
-  #define startButton           8
+  #define startButton           9
+  #define servoPin              10
 
   //Motor pins
   #define leftMotordig           4
@@ -51,6 +53,8 @@
   #define rightMotordig          7
   #define rightMotorpwm          6
 #endif
+
+#define NEED_COM                0
 
 //Possible States
 #define INITIALIZATION        0
@@ -71,7 +75,7 @@
 #define LINE_BEHIND           1
 #define ON_LINE               2
 #define LINE_ADJ_SPEED        180
-#define LINESENSING_INVERTED  0 //1 = look for white, 0 = look for black
+#define LINESENSING_INVERTED  1 //1 = look for white, 0 = look for black
 
 //Fire sensing constants
 #define FIRESENSED            50
@@ -127,6 +131,10 @@ void setup() {
   pinMode(startButton,INPUT);
   
   //Wait for start
+  if(NEED_COM){
+    while(!Serial);
+  }
+  Serial.println("Comm ready");
   while(digitalRead(startButton)==LOW);
   Serial.println("Started");
 }
@@ -143,11 +151,22 @@ int fire_motinertia = 140;
 int fire_motcorrection = 60;
 //END DECLARATIONS FOR FIRE SENSING
 
+boolean rotatedAtStart = false;
+int diagTimeCount=0;
+
+//KEEP TRACK OF RUNTIME
+unsigned long time = 0;
+unsigned long startTime = millis();
+
 void loop() {
+  //while(1) Serial.println("Test2");
   switch(STATE){
     case INITIALIZATION:
       //Rotate 90 deg CW at start
-      rotCW90();
+      if(!rotatedAtStart){
+        rotCW90();
+        rotatedAtStart = true;
+      }
       
       //Is there something in front of me? If so, rotate 90 CCW
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
@@ -158,8 +177,9 @@ void loop() {
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
       
       //After 3 seconds, initialization is over, so go to next state
-      if(millis()>=3000){
+      if(time>=5000){
         STATE = WALLFOLLOW;
+        Serial.println("Changed state to WALLFOLLOW");
       }
       
       break;
@@ -178,11 +198,12 @@ void loop() {
       //Look for lines. If found, change state to aligning with line
       #if LINESENSING_INVERTED
         if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
-          //STATE = ALIGNLINE;
+          STATE = ALIGNLINE;
         }
       #else
         if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
-          //STATE = ALIGNLINE;
+          STATE = ALIGNLINE;
+          Serial.println("Changed state to ALIGNLINE");
         }
       #endif
       
@@ -243,8 +264,10 @@ void loop() {
       
       if (rLineSide == ON_LINE && lLineSide == ON_LINE){   //Both sides on line!
         Serial.println("ALIGNED WITH LINE!!");
-        delay(100);                                        //Pause
-        //STATE = INROOM;                                    //and then change to next state
+        rightMotor.brake();
+        leftMotor.brake();
+        delay(4000);                                        //Pause
+        STATE = INROOM;                                    //and then change to next state
       }
       
       
@@ -323,10 +346,14 @@ void loop() {
       
       break;
   }
-  
-  if(millis()%1000==0){
+  diagTimeCount++;
+  if(diagTimeCount>2000){
     sensorDiagnostics();
+    diagTimeCount=0;
   }
+  
+  
+  time = millis() - startTime;
 }
 
 void sensorDiagnostics(){
@@ -390,14 +417,14 @@ void sensorDiagnostics(){
 
 //Rotate clockwise 90 degrees
 void rotCW90(){
-  leftMotor.drive(200);
-  rightMotor.drive(-200);
-  delay(400);
+  leftMotor.drive(255);
+  rightMotor.drive(-255);
+  delay(900);
 }
 
 //Rotate counterclockwise 90 degrees
 void rotCCW90(){
-  leftMotor.drive(-200);
-  rightMotor.drive(200);
-  delay(400);
+  leftMotor.drive(-255);
+  rightMotor.drive(255);
+  delay(900);
 }
