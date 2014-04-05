@@ -56,7 +56,7 @@
 
 //IS SERIAL COMM NEEDED?
 //THIS FUCKS UP TIMING SOM'M BAD
-#define NEED_COM               0
+#define DEBUG               0
 
 //Possible States
 #define INITIALIZATION        0
@@ -83,6 +83,7 @@
 #define FIRESENSED            50
 #define FIRECLOSE             600
 #define FIREANGLETHRESH       4
+#define FIRESWEEPTIME         500
 
 //Motor controller object
 //(motorcontrol.h)
@@ -128,7 +129,10 @@ void setup() {
   fireSense.flip();
   
   
-  Serial.begin(9600);
+  #if DEBUG
+    Serial.begin(9600);
+  #endif
+  
   pinMode(lineLeftPin,INPUT);
   pinMode(lineRightPin,INPUT);
   pinMode(distRightBackPin,INPUT);
@@ -138,17 +142,21 @@ void setup() {
   pinMode(distLeftFrontPin,INPUT);
   pinMode(startButton,INPUT);
   
-  //Wait for start
-  if(NEED_COM){
+  //Wait for serial to begin
+  #if DEBUG
     while(!Serial);
-  }
-  Serial.println("Comm ready");
+    Serial.println("Comm ready");
+  #endif
+  
+  //Wait for start button
   while(digitalRead(startButton)==LOW){
     if(millis()%1000==0){
       sensorDiagnostics();
     }
   }
-  Serial.println("Started");
+  #if DEBUG
+    Serial.println("Started");
+  #endif
 }
 
 //These declarations are for line adjustment
@@ -163,6 +171,9 @@ int fire_motinertia = 80;//140;
 int fire_motcorrection = 140;
 int fAngle = 0;
 int fStrength = 0;
+int maxFireStrength = 0;
+int curFireStrength = 0;
+boolean maxFireFound = false;
 //END DECLARATIONS FOR FIRE SENSING
 
 boolean rotatedAtStart = false;
@@ -171,7 +182,7 @@ int diagTimeCount=0;
 //KEEP TRACK OF RUNTIME
 unsigned long time = 0;
 unsigned long startTime = millis();
-
+unsigned long stateStart =0;
 void loop() {
   //while(1) Serial.println("Test2");
   switch(STATE){
@@ -192,7 +203,10 @@ void loop() {
       //After 3 seconds, initialization is over, so go to next state
       if(time>=5000){
         STATE = WALLFOLLOW;
-        Serial.println("Changed state to WALLFOLLOW");
+        stateStart = time;
+        #if DEBUG
+          Serial.println("Changed state to WALLFOLLOW");
+        #endif
       }
       
       break;
@@ -215,7 +229,10 @@ void loop() {
       #else
         if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
           STATE = ALIGNLINE;
-          Serial.println("Changed state to ALIGNLINE");
+          stateStart = time;
+          #if DEBUG
+            Serial.println("Changed state to ALIGNLINE");
+          #endif
         }
       #endif
       
@@ -275,11 +292,14 @@ void loop() {
       }
       
       if (rLineSide == ON_LINE && lLineSide == ON_LINE){   //Both sides on line!
-        Serial.println("ALIGNED WITH LINE!!");
+        #if DEBUG
+          Serial.println("ALIGNED WITH LINE!!");
+        #endif
         rightMotor.brake();
         leftMotor.brake();
         delay(4000);                                        //Pause
         STATE = INROOM;                                    //and then change to next state
+        stateStart = time;
       }
       
       
@@ -353,6 +373,7 @@ void loop() {
           leftMotor.brake();
           rightMotor.brake();
           STATE = ALIGNFIRE;
+          stateStart = time;
         }
       //}
       
@@ -360,6 +381,41 @@ void loop() {
       
     case ALIGNFIRE:
     //Rotate until maximum read on middle fire sensor
+      //Sweep left
+      if(time-stateStart<FIRESWEEPTIME)
+      {
+        leftMotor.drive(50);
+        rightMotor.drive(-50);
+        curFireStrength = fireSense.fireStrength();
+        if(maxFireStrength<curFireStrength){
+          maxFireStrength=curFireStrength;
+        }
+      }
+      //Sweep right
+      else if(time-stateStart<FIRESWEEPTIME*2){
+        leftMotor.drive(50);
+        rightMotor.drive(-50);
+        curFireStrength = fireSense.fireStrength();
+        if(maxFireStrength<curFireStrength){
+          maxFireStrength=curFireStrength;
+        }
+      }
+      //Turn left slowly until max is reached,
+      //ideally pointing right at fire
+      else{
+        if(fireSense.fireStrength()<maxFireStrength && !maxFireFound){
+          leftMotor.drive(-40);
+          rightMotor.drive(40);
+        }
+        else{
+          maxFireFound = true;
+          leftMotor.brake();
+          rightMotor.brake();
+          STATE = PUTOUTFIRE;
+          stateStart = time;
+        }
+      }
+    
       break;
       
       
@@ -387,7 +443,7 @@ void loop() {
 }
 
 void sensorDiagnostics(){
-  if(NEED_COM){
+  #if DEBUG
     Serial.println("------------Printing robot information------------");
     
     Serial.print("ROBOT MONICKER:                 ");
@@ -440,7 +496,7 @@ void sensorDiagnostics(){
     Serial.println(analogRead(distFrontPin));
     
     Serial.println("--------------------------------------------------");
-  }
+  #endif
 }
 
 
