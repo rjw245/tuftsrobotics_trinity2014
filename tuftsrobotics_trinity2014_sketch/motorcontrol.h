@@ -8,7 +8,7 @@
 #define DERIVATIVE   1
 #define INTEGRAL     2
 
-#define KP           0.75
+#define KP           0.8
 #define KD           0.8
 #define KI           0.3
 

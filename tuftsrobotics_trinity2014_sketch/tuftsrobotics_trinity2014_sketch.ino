@@ -56,9 +56,10 @@
 
 //IS SERIAL COMM NEEDED?
 //THIS FUCKS UP TIMING SOM'M BAD
-#define DEBUG                 0
+#define DEBUG                 1
 
 //Possible States
+#define STARTPUSHED           8
 #define INITIALIZATION        0
 #define WALLFOLLOW            1
 #define INROOM                2
@@ -68,16 +69,18 @@
 #define PUTOUTFIRE            6
 #define ALIGNFIRE             7
 
+#define INITIALIZATION_TIME   5500
+
 //Wall-follow constants
 #define FRONTOBSTACLEDIST     400
 
 //Line sense & alignment constants
-#define LINESENSING_INVERTED  1     //1 = look for black, 0 = look for white
+#define LINESENSING_INVERTED  0     //1 = look for black, 0 = look for white
 
 #if LINESENSING_INVERTED
   #define LINESENSED            700
 #else
-  #defife LINESENSED            50
+  #define LINESENSED            50
 #endif
 
 #define LINE_INFRONT          0
@@ -87,7 +90,7 @@
 
 //Fire sensing constants
 #define FIRESENSED            40
-#define FIRECLOSE             575
+#define FIRECLOSE             480
 #define FIREANGLETHRESH       4
 #define FIRESWEEPTIME         200
 
@@ -112,7 +115,7 @@ Motor rightMotor;
 Servo pullServo;
 
 //Start state is INITIALIZATION
-int STATE = INITIALIZATION;
+int STATE = STARTPUSHED;
 
 void setup() {
   //Set up motors with proper pins
@@ -192,6 +195,12 @@ unsigned long stateStart = 0;
 void loop() {
   //while(1) Serial.println("Test2");
   switch(STATE){
+    case STARTPUSHED:
+      time = 0;
+      startTime = millis();
+      stateStart = 0;
+      STATE = INITIALIZATION;
+      break;
     case INITIALIZATION:
       //Rotate 90 deg CW at start
       if(!rotatedAtStart){
@@ -204,10 +213,10 @@ void loop() {
         rotCCW90();
       }
       //Wall follow
-      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),200);
       
-      //After 3 seconds, initialization is over, so go to next state
-      if(time>=5000){
+      //After some seconds, initialization is over, so go to next state
+      if(time>=INITIALIZATION_TIME){
         STATE = WALLFOLLOW;
         stateStart = time;
         #if DEBUG
@@ -224,7 +233,7 @@ void loop() {
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
         rotCCW90();
       }
-      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),140);
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),200);
       
       
       //Look for lines. If found, change state to aligning with line
@@ -307,10 +316,10 @@ void loop() {
         #endif
         rightMotor.brake();
         leftMotor.brake();
-        delay(400);                                        //Pause
+        delay(200);                                        //Pause
         leftMotor.drive(80);                               //Drive forward slightly to
         rightMotor.drive(80);                              //verify that we are now off
-        delay(200);                                        //the line and not mistakenly
+        delay(400);                                        //the line and not mistakenly
         leftMotor.brake();                                 //reading the start pad
         rightMotor.brake();
         lineLeft  = analogRead(lineLeftPin);
@@ -364,8 +373,14 @@ void loop() {
     case INROOM:
       //IF fire sensed
 
-      if(fireSense.isThereFire()){
+      if(fireSense.fireStrength()>FIRESENSED){
         STATE = FOUNDFIRE;
+        //Avoid hitting corner if fire is in corner
+        leftMotor.drive(200);
+        rightMotor.drive(200);
+        delay(800);
+        leftMotor.brake();
+        rightMotor.brake();
       }
       else{
         leaveRoom();
@@ -546,10 +561,10 @@ void rotCCW90(){
 void leaveRoom(){
   leftMotor.drive(-255);
   rightMotor.drive(255);
-  delay(1700);
+  delay(2000);
   leftMotor.drive(250);
   rightMotor.drive(250);
-  delay(1000);
+  delay(1200);
   leftMotor.brake();
   rightMotor.brake();
 }

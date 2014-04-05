@@ -82,7 +82,9 @@ void MotorControl::drive(int p_left, int p_right, int inertia){
       
       
       //angle should be proportional to dist_from_opt
-      
+      if(KP * error + inertia > 255){
+        inertia = 255 - KP * error;
+      }
       int P_l = KP * error + inertia;
       int P_r = KP * -error + inertia;
       
