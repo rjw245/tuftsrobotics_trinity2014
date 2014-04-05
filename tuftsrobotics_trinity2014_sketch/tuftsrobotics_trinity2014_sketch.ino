@@ -82,6 +82,7 @@
 //Fire sensing constants
 #define FIRESENSED            50
 #define FIRECLOSE             600
+#define FIREANGLETHRESH       4
 
 //Motor controller object
 //(motorcontrol.h)
@@ -334,12 +335,12 @@ void loop() {
       
       
       //if(abs(fAngle)>=7){
-        if(fAngle>5)
+        if(fAngle > FIREANGLETHRESH)
         {
           leftMotor.drive(fire_motinertia + fire_motcorrection);
           rightMotor.drive(fire_motinertia - fire_motcorrection);
         }
-        else if(fAngle<-5){
+        else if(fAngle < -FIREANGLETHRESH){
           leftMotor.drive(fire_motinertia - fire_motcorrection);
           rightMotor.drive(fire_motinertia + fire_motcorrection);
         }
