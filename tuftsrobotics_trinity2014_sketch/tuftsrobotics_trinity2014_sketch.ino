@@ -100,7 +100,7 @@ Motor rightMotor;
 Servo pullServo;
 
 //Start state is INITIALIZATION
-int STATE = FOUNDFIRE;
+int STATE = INITIALIZATION;
 
 void setup() {
   //Set up motors with proper pins
@@ -328,11 +328,7 @@ void loop() {
       fAngle = fireSense.fireAngle();
       fStrength = fireSense.fireStrength();
       
-      if(fStrength>=FIRECLOSE){
-        leftMotor.brake();
-        rightMotor.brake();
-        //STATE = ALIGNFIRE;
-      }
+      
       //if(abs(fAngle)>=7){
         if(fAngle>5)
         {
@@ -346,6 +342,12 @@ void loop() {
         else{
           leftMotor.drive(fire_motinertia);
           rightMotor.drive(fire_motinertia);
+        }
+        
+        if(fStrength>=FIRECLOSE){
+          leftMotor.brake();
+          rightMotor.brake();
+          STATE = ALIGNFIRE;
         }
       //}
       
