@@ -91,6 +91,10 @@ MotorControl mcontrol(DERIVATIVE);
 //(fireSensorArray.h)
 FireSensorArray fireSense;
 
+//EXTINGUISHER SERVO CONSTANTS
+#define SERVO_LOOSE           40
+#define SERVO_TAUT            140
+
 
 //Motor objects
 Motor leftMotor;
@@ -108,7 +112,7 @@ void setup() {
   rightMotor.attach(rightMotordig,rightMotorpwm);
   
   pullServo.attach(10);
-  pullServo.write(10);
+  pullServo.write(SERVO_LOOSE);
   
   //Get left motor in proper orientation
   leftMotor.flip();
@@ -359,9 +363,9 @@ void loop() {
       
       
     case PUTOUTFIRE:
-      pullServo.write(160);
+      pullServo.write(SERVO_TAUT);
       delay(1200);
-      pullServo.write(10);
+      pullServo.write(SERVO_LOOSE);
       delay(1000);
       STATE = RETURNHOME;
       break;
