@@ -17,8 +17,8 @@
   #define distLeftBackPin       A14
   #define distLeftFrontPin      A13
   #define fireSensePin1         A3
-  #define fireSensePin2         A2
-  #define fireSensePin3         A4
+  #define fireSensePin2         A4
+  #define fireSensePin3         A2
   #define fireSensePin4         -1
   #define fireSensePin5         -1
   #define startButton           8
@@ -39,9 +39,9 @@
   #define distFrontPin          A10
   #define distLeftBackPin       A14
   #define distLeftFrontPin      A13
-  #define fireSensePin1         A3
+  #define fireSensePin1         A2
   #define fireSensePin2         A2
-  #define fireSensePin3         A4
+  #define fireSensePin3         A2
   #define fireSensePin4         -1
   #define fireSensePin5         -1
   #define startButton           9
@@ -54,7 +54,9 @@
   #define rightMotorpwm          6
 #endif
 
-#define NEED_COM                0
+//IS SERIAL COMM NEEDED?
+//THIS FUCKS UP TIMING SOM'M BAD
+#define NEED_COM               0
 
 //Possible States
 #define INITIALIZATION        0
@@ -70,11 +72,11 @@
 #define FRONTOBSTACLEDIST     400
 
 //Line sense & alignment constants
-#define LINESENSED            500
+#define LINESENSED            600
 #define LINE_INFRONT          0
 #define LINE_BEHIND           1
 #define ON_LINE               2
-#define LINE_ADJ_SPEED        180
+#define LINE_ADJ_SPEED        80
 #define LINESENSING_INVERTED  1 //1 = look for white, 0 = look for black
 
 //Fire sensing constants
@@ -98,7 +100,7 @@ Motor rightMotor;
 Servo pullServo;
 
 //Start state is INITIALIZATION
-int STATE = INITIALIZATION;
+int STATE = FOUNDFIRE;
 
 void setup() {
   //Set up motors with proper pins
@@ -118,6 +120,7 @@ void setup() {
   //and pass it to the fire sensor array object
   int fireSensePins[3] = {fireSensePin1,fireSensePin2,fireSensePin3};
   fireSense.attach(fireSensePins);
+  fireSense.flip();
   
   
   Serial.begin(9600);
@@ -135,7 +138,11 @@ void setup() {
     while(!Serial);
   }
   Serial.println("Comm ready");
-  while(digitalRead(startButton)==LOW);
+  while(digitalRead(startButton)==LOW){
+    if(millis()%1000==0){
+      sensorDiagnostics();
+    }
+  }
   Serial.println("Started");
 }
 
@@ -147,8 +154,10 @@ int lLineSide = LINE_INFRONT;   //at top of code
 //END DECLARATIONS FOR LINE ADJUSTMENT
 
 //These declarations are for fire sensing
-int fire_motinertia = 140;
-int fire_motcorrection = 60;
+int fire_motinertia = 80;//140;
+int fire_motcorrection = 140;
+int fAngle = 0;
+int fStrength = 0;
 //END DECLARATIONS FOR FIRE SENSING
 
 boolean rotatedAtStart = false;
@@ -170,8 +179,7 @@ void loop() {
       
       //Is there something in front of me? If so, rotate 90 CCW
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
-        //leftMotor.drive(-200);
-        //rightMotor.drive(200);
+        rotCCW90();
       }
       //Wall follow
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),90);
@@ -189,8 +197,7 @@ void loop() {
       //Look for front obstacles:
       //Is there something in front of me? If so, rotate 90 CCW
       if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
-        //leftMotor.drive(-200);
-        //rightMotor.drive(200);
+        rotCCW90();
       }
       mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),140);
       
@@ -275,25 +282,25 @@ void loop() {
       if(rLineSide == LINE_INFRONT){        //If right side behind line...
         rightMotor.drive(LINE_ADJ_SPEED);   //...drive right side forward
         if(lLineSide == ON_LINE){           //..and if left side on line...
-          leftMotor.drive(-LINE_ADJ_SPEED); //...drive left side opposite to stay in place
+          leftMotor.drive(-LINE_ADJ_SPEED-20); //...drive left side opposite to stay in place
         }
       }
       if(rLineSide == LINE_BEHIND){         //If right side in front of line...
         rightMotor.drive(-LINE_ADJ_SPEED);  //...drive right side backward
         if(lLineSide == ON_LINE){           //..and if left side on line...
-          leftMotor.drive(LINE_ADJ_SPEED);  //...drive left side opposite to stay in place
+          leftMotor.drive(LINE_ADJ_SPEED+20);  //...drive left side opposite to stay in place
         }
       }
       if(lLineSide == LINE_INFRONT){        //If left side behind line...
         leftMotor.drive(LINE_ADJ_SPEED);    //...drive left side forward
         if(rLineSide == ON_LINE){           //and if right side on line...
-          rightMotor.drive(-LINE_ADJ_SPEED);//...drive right side opposite to stay in place
+          rightMotor.drive(-LINE_ADJ_SPEED-20);//...drive right side opposite to stay in place
         }
       }
       if(lLineSide == LINE_BEHIND){         //If left side in front of line...
         leftMotor.drive(-LINE_ADJ_SPEED);   //...drive left backward
         if(rLineSide == ON_LINE){           //and if right side on line...
-          rightMotor.drive(LINE_ADJ_SPEED); //...drive right side opposite to stay in place
+          rightMotor.drive(LINE_ADJ_SPEED+20); //...drive right side opposite to stay in place
         }
       }
         
@@ -307,7 +314,8 @@ void loop() {
         STATE = FOUNDFIRE;
       }
       else{
-        //BACK OUT OF ROOM
+        leaveRoom();
+        STATE = WALLFOLLOW;
       }
       
       break;
@@ -317,20 +325,35 @@ void loop() {
       //DRIVE FORWARD UNTIL FIRE READS SIGNIFICANTLY HIGH
       //TRIGGER CO2
       //STATE = RETURNHOME;
-      if(fireSense.fireStrength()>=FIRECLOSE){
-        fire_motinertia = 0;
+      fAngle = fireSense.fireAngle();
+      fStrength = fireSense.fireStrength();
+      
+      if(fStrength>=FIRECLOSE){
+        leftMotor.brake();
+        rightMotor.brake();
+        //STATE = ALIGNFIRE;
       }
-      if(abs(fireSense.fireAngle())>=7){
-        leftMotor.drive(fire_motinertia + fire_motcorrection);
-        rightMotor.drive(fire_motinertia - fire_motcorrection);
-      }
-      else{
-        STATE = ALIGNFIRE;
-      }
+      //if(abs(fAngle)>=7){
+        if(fAngle>5)
+        {
+          leftMotor.drive(fire_motinertia + fire_motcorrection);
+          rightMotor.drive(fire_motinertia - fire_motcorrection);
+        }
+        else if(fAngle<-5){
+          leftMotor.drive(fire_motinertia - fire_motcorrection);
+          rightMotor.drive(fire_motinertia + fire_motcorrection);
+        }
+        else{
+          leftMotor.drive(fire_motinertia);
+          rightMotor.drive(fire_motinertia);
+        }
+      //}
       
       break;
       
     case ALIGNFIRE:
+    //Rotate until maximum read on middle fire sensor
+      break;
       
       
     case PUTOUTFIRE:
@@ -357,58 +380,60 @@ void loop() {
 }
 
 void sensorDiagnostics(){
-  Serial.println("------------Printing robot information------------");
-  
-  Serial.print("ROBOT MONICKER:                 ");
-  if(IS_DELUX){
-    Serial.println("Delux");
-  } else {
-    Serial.println("Irrelephant");
+  if(NEED_COM){
+    Serial.println("------------Printing robot information------------");
+    
+    Serial.print("ROBOT MONICKER:                 ");
+    if(IS_DELUX){
+      Serial.println("Delux");
+    } else {
+      Serial.println("Irrelephant");
+    }
+    
+    Serial.print("LINE SENSOR - Left:            ");
+    Serial.println(analogRead(lineLeftPin));
+    
+    Serial.print("LINE SENSOR - Right:           ");
+    Serial.println(analogRead(lineRightPin));
+    
+    Serial.println();
+    
+    Serial.print("FIRE SENSOR - Left:              ");
+    Serial.println(analogRead(fireSensePin1));
+    
+    Serial.print("FIRE SENSOR - Center:            ");
+    Serial.println(analogRead(fireSensePin2));
+    
+    Serial.print("FIRE SENSOR - Right:             ");
+    Serial.println(analogRead(fireSensePin3));
+    
+    Serial.println();
+    
+    Serial.print("FIRE SENSOR - Angle:             ");
+    Serial.println(fireSense.fireAngle());
+    
+    Serial.print("FIRE SENSOR - Strength:          ");
+    Serial.println(fireSense.fireStrength());
+    
+    Serial.println();
+    
+    Serial.print("DISTANCE SENSOR - Left-Back:   ");
+    Serial.println(analogRead(distLeftBackPin));
+    
+    Serial.print("DISTANCE SENSOR - Left-Front:  ");
+    Serial.println(analogRead(distLeftFrontPin));
+    
+    Serial.print("DISTANCE SENSOR - Right-Back:  ");
+    Serial.println(analogRead(distRightBackPin));
+    
+    Serial.print("DISTANCE SENSOR - Right-Front: ");
+    Serial.println(analogRead(distRightFrontPin));
+    
+    Serial.print("DISTANCE SENSOR - Front:       ");
+    Serial.println(analogRead(distFrontPin));
+    
+    Serial.println("--------------------------------------------------");
   }
-  
-  Serial.print("LINE SENSOR - Left:            ");
-  Serial.println(analogRead(lineLeftPin));
-  
-  Serial.print("LINE SENSOR - Right:           ");
-  Serial.println(analogRead(lineRightPin));
-  
-  Serial.println();
-  
-  Serial.print("FIRE SENSOR - Left:              ");
-  Serial.println(analogRead(fireSensePin1));
-  
-  Serial.print("FIRE SENSOR - Center:            ");
-  Serial.println(analogRead(fireSensePin2));
-  
-  Serial.print("FIRE SENSOR - Right:             ");
-  Serial.println(analogRead(fireSensePin3));
-  
-  Serial.println();
-  
-  Serial.print("FIRE SENSOR - Angle:             ");
-  Serial.println(fireSense.fireAngle());
-  
-  Serial.print("FIRE SENSOR - Strength:          ");
-  Serial.println(fireSense.fireStrength());
-  
-  Serial.println();
-  
-  Serial.print("DISTANCE SENSOR - Left-Back:   ");
-  Serial.println(analogRead(distLeftBackPin));
-  
-  Serial.print("DISTANCE SENSOR - Left-Front:  ");
-  Serial.println(analogRead(distLeftFrontPin));
-  
-  Serial.print("DISTANCE SENSOR - Right-Back:  ");
-  Serial.println(analogRead(distRightBackPin));
-  
-  Serial.print("DISTANCE SENSOR - Right-Front: ");
-  Serial.println(analogRead(distRightFrontPin));
-  
-  Serial.print("DISTANCE SENSOR - Front:       ");
-  Serial.println(analogRead(distFrontPin));
-  
-  Serial.println("--------------------------------------------------");
 }
 
 
@@ -419,12 +444,22 @@ void sensorDiagnostics(){
 void rotCW90(){
   leftMotor.drive(255);
   rightMotor.drive(-255);
-  delay(900);
+  delay(1000);
 }
 
 //Rotate counterclockwise 90 degrees
 void rotCCW90(){
   leftMotor.drive(-255);
   rightMotor.drive(255);
-  delay(900);
+  delay(1000);
+}
+
+void leaveRoom(){
+  rotCCW90();
+  rotCCW90();
+  leftMotor.drive(250);
+  rightMotor.drive(250);
+  delay(800);
+  leftMotor.brake();
+  rightMotor.brake();
 }
