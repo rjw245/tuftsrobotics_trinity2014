@@ -56,7 +56,7 @@
 
 //IS SERIAL COMM NEEDED?
 //THIS FUCKS UP TIMING SOM'M BAD
-#define DEBUG               0
+#define DEBUG                 0
 
 //Possible States
 #define INITIALIZATION        0
@@ -72,7 +72,7 @@
 #define FRONTOBSTACLEDIST     400
 
 //Line sense & alignment constants
-#define LINESENSED            600
+#define LINESENSED            50
 #define LINE_INFRONT          0
 #define LINE_BEHIND           1
 #define ON_LINE               2
@@ -95,7 +95,7 @@ FireSensorArray fireSense;
 
 //EXTINGUISHER SERVO CONSTANTS
 #define SERVO_LOOSE           40
-#define SERVO_TAUT            140
+#define SERVO_TAUT            90
 
 
 //Motor objects
@@ -114,7 +114,7 @@ void setup() {
   rightMotor.attach(rightMotordig,rightMotorpwm);
   
   pullServo.attach(10);
-  pullServo.write(SERVO_LOOSE);
+  //pullServo.write(SERVO_LOOSE);
   
   //Get left motor in proper orientation
   leftMotor.flip();
@@ -182,7 +182,7 @@ int diagTimeCount=0;
 //KEEP TRACK OF RUNTIME
 unsigned long time = 0;
 unsigned long startTime = millis();
-unsigned long stateStart =0;
+unsigned long stateStart = 0;
 void loop() {
   //while(1) Serial.println("Test2");
   switch(STATE){
@@ -297,8 +297,27 @@ void loop() {
         #endif
         rightMotor.brake();
         leftMotor.brake();
-        delay(4000);                                        //Pause
-        STATE = INROOM;                                    //and then change to next state
+        delay(400);                                        //Pause
+        leftMotor.drive(80);                               //Drive forward slightly to
+        rightMotor.drive(80);                              //verify that we are now off
+        delay(200);                                        //the line and not mistakenly
+        leftMotor.brake();                                 //reading the start pad
+        rightMotor.brake();
+        lineLeft  = analogRead(lineLeftPin);
+        lineRight = analogRead(lineRightPin);
+        #if LINESENSING_INVERTED
+          lineLeftSensed  = (lineLeft  > LINESENSED);
+          lineRightSensed = (lineRight > LINESENSED);
+        #else
+          lineLeftSensed  = (lineLeft  < LINESENSED);
+          lineRightSensed = (lineRight < LINESENSED);
+        #endif
+        if(lineRightSensed && lineLeftSensed){             //If line still sensed, we're on pad
+          STATE = WALLFOLLOW;                              //so continue wall following
+        }
+        else{
+          STATE = INROOM;                                  //otherwise, we sensed a line!
+        }
         stateStart = time;
       }
       
@@ -392,7 +411,7 @@ void loop() {
         }
       }
       //Sweep right
-      else if(time-stateStart<FIRESWEEPTIME*2){
+      else if(time-stateStart<FIRESWEEPTIME*3){
         leftMotor.drive(50);
         rightMotor.drive(-50);
         curFireStrength = fireSense.fireStrength();
@@ -420,10 +439,7 @@ void loop() {
       
       
     case PUTOUTFIRE:
-      pullServo.write(SERVO_TAUT);
-      delay(1200);
-      pullServo.write(SERVO_LOOSE);
-      delay(1000);
+      extinguish();
       STATE = RETURNHOME;
       break;
       
@@ -525,4 +541,21 @@ void leaveRoom(){
   delay(800);
   leftMotor.brake();
   rightMotor.brake();
+}
+
+void extinguish(){
+  int pos;
+  for(pos = SERVO_LOOSE; pos <= SERVO_TAUT; pos += 1) // goes from 0 degrees to 180 degrees 
+  {                                  // in steps of 1 degree 
+    pullServo.write(pos);              // tell servo to go to position in variable 'pos' 
+    delay(11);                       // waits 15ms for the servo to reach the position 
+  }
+  
+  for(pos = SERVO_TAUT; pos>=SERVO_LOOSE; pos -= 1)     // goes from 180 degrees to 0 degrees 
+  {                                
+    pullServo.write(pos);              // tell servo to go to position in variable 'pos' 
+    delay(8);                       // waits 15ms for the servo to reach the position 
+  }
+  
+  //pullServo.write(SERVO_LOOSE); 
 }
