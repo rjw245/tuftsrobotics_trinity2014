@@ -56,7 +56,7 @@
 
 //IS SERIAL COMM NEEDED?
 //THIS FUCKS UP TIMING SOM'M BAD
-#define DEBUG                 1
+#define DEBUG                 0
 
 //Possible States
 #define STARTPUSHED           8
@@ -68,19 +68,20 @@
 #define ALIGNLINE             5
 #define PUTOUTFIRE            6
 #define ALIGNFIRE             7
+#define HOMEREACHED           9
 
 #define INITIALIZATION_TIME   5500
 
 //Wall-follow constants
-#define FRONTOBSTACLEDIST     400
+#define FRONTOBSTACLEDIST     370
 
 //Line sense & alignment constants
 #define LINESENSING_INVERTED  0     //1 = look for black, 0 = look for white
 
 #if LINESENSING_INVERTED
-  #define LINESENSED            700
+  #define LINESENSED            850
 #else
-  #define LINESENSED            50
+  #define LINESENSED            45
 #endif
 
 #define LINE_INFRONT          0
@@ -89,10 +90,11 @@
 #define LINE_ADJ_SPEED        80
 
 //Fire sensing constants
-#define FIRESENSED            40
+#define FIRESENSED            34
 #define FIRECLOSE             480
 #define FIREANGLETHRESH       4
 #define FIRESWEEPTIME         200
+#define FIRESENSE_TRIALS      10
 
 //Motor controller object
 //(motorcontrol.h)
@@ -114,7 +116,7 @@ Motor rightMotor;
 //Servo for canister
 Servo pullServo;
 
-//Start state is INITIALIZATION
+//Start state is STARTPUSHED
 int STATE = STARTPUSHED;
 
 void setup() {
@@ -183,10 +185,14 @@ int fStrength = 0;
 int maxFireStrength = 0;
 int curFireStrength = 0;
 boolean maxFireFound = false;
+int fireStrengthSum = 0;
+int fireStrengthAvg = 0;
 //END DECLARATIONS FOR FIRE SENSING
 
 boolean rotatedAtStart = false;
 int diagTimeCount=0;
+
+int numRoomsChecked = 0;
 
 //KEEP TRACK OF RUNTIME
 unsigned long time = 0;
@@ -209,11 +215,11 @@ void loop() {
       }
       
       //Is there something in front of me? If so, rotate 90 CCW
-      if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
+      if(avgSensorVal(distFrontPin,3)>FRONTOBSTACLEDIST){
         rotCCW90();
       }
       //Wall follow
-      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),200);
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),180);
       
       //After some seconds, initialization is over, so go to next state
       if(time>=INITIALIZATION_TIME){
@@ -230,28 +236,80 @@ void loop() {
       //Serial.println("WALL FOLLOWING");
       //Look for front obstacles:
       //Is there something in front of me? If so, rotate 90 CCW
-      if(analogRead(distFrontPin)>FRONTOBSTACLEDIST){
+      if(avgSensorVal(distFrontPin,3)>FRONTOBSTACLEDIST){
         rotCCW90();
       }
-      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),200);
+      mcontrol.drive(analogRead(distRightBackPin),analogRead(distRightFrontPin),180);
       
       
       //Look for lines. If found, change state to aligning with line
       #if LINESENSING_INVERTED
         if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
-          STATE = ALIGNLINE;
-          stateStart = time;
-          #if DEBUG
-            Serial.println("Changed state to ALIGNLINE");
+          //STATE = ALIGNLINE;
+          rightMotor.brake();
+          leftMotor.brake();
+          delay(200);                                        //Pause
+          leftMotor.drive(80);                               //Drive forward slightly to
+          rightMotor.drive(80);                              //verify that we are now off
+          delay(400);                                        //the line and not mistakenly
+          leftMotor.brake();                                 //reading the start pad
+          rightMotor.brake();
+          lineLeft  = analogRead(lineLeftPin);
+          lineRight = analogRead(lineRightPin);
+          #if LINESENSING_INVERTED
+            lineLeftSensed  = (lineLeft  > LINESENSED);
+            lineRightSensed = (lineRight > LINESENSED);
+          #else
+            lineLeftSensed  = (lineLeft  < LINESENSED);
+            lineRightSensed = (lineRight < LINESENSED);
           #endif
+          if(!(lineLeftSensed && lineRightSensed)){
+            numRoomsChecked++;
+            STATE = INROOM;
+            leftMotor.brake();
+            rightMotor.brake();
+            stateStart = time;
+            #if DEBUG
+              Serial.println("Changed state to ALIGNLINE");
+            #endif
+          }
+          else{
+            STATE = INITIALIZATION; //We're on the pad again, so get off it
+          }
         }
       #else
         if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
-          STATE = ALIGNLINE;
-          stateStart = time;
-          #if DEBUG
-            Serial.println("Changed state to ALIGNLINE");
+          //STATE = ALIGNLINE;
+          rightMotor.brake();
+          leftMotor.brake();
+          delay(200);                                        //Pause
+          leftMotor.drive(80);                               //Drive forward slightly to
+          rightMotor.drive(80);                              //verify that we are now off
+          delay(400);                                        //the line and not mistakenly
+          leftMotor.brake();                                 //reading the start pad
+          rightMotor.brake();
+          lineLeft  = analogRead(lineLeftPin);
+          lineRight = analogRead(lineRightPin);
+          #if LINESENSING_INVERTED
+            lineLeftSensed  = (lineLeft  > LINESENSED);
+            lineRightSensed = (lineRight > LINESENSED);
+          #else
+            lineLeftSensed  = (lineLeft  < LINESENSED);
+            lineRightSensed = (lineRight < LINESENSED);
           #endif
+          if(!lineLeftSensed && !lineRightSensed){
+            numRoomsChecked++;
+            STATE = INROOM;
+            leftMotor.brake();
+            rightMotor.brake();
+            stateStart = time;
+            #if DEBUG
+              Serial.println("Changed state to ALIGNLINE");
+            #endif
+          }
+          else{
+            STATE = INITIALIZATION; //We're on the pad again, so get off it
+          }
         }
       #endif
       
@@ -259,6 +317,7 @@ void loop() {
      
     
     case ALIGNLINE:
+      
       lineLeft  = analogRead(lineLeftPin);
       lineRight = analogRead(lineRightPin);
       
@@ -371,9 +430,17 @@ void loop() {
       break;
       
     case INROOM:
-      //IF fire sensed
-
-      if(fireSense.fireStrength()>FIRESENSED){
+      fireStrengthSum = 0;
+      for(int i=0; i<FIRESENSE_TRIALS; i++){
+        fireStrengthSum += fireSense.fireStrength();
+        delay(1);
+      }
+      fireStrengthAvg = fireStrengthSum / FIRESENSE_TRIALS;
+      #if DEBUG
+        Serial.println(fireStrengthAvg);
+        delay(400);
+      #endif
+      if(fireStrengthAvg>=FIRESENSED){
         STATE = FOUNDFIRE;
         //Avoid hitting corner if fire is in corner
         leftMotor.drive(200);
@@ -465,11 +532,81 @@ void loop() {
       
     case PUTOUTFIRE:
       extinguish();
-      STATE = RETURNHOME;
+      delay(200);
+      fireStrengthSum = 0;
+      for(int i=0; i<FIRESENSE_TRIALS; i++){
+        fireStrengthSum += fireSense.fireStrength();
+        delay(1);
+      }
+      fireStrengthAvg = fireStrengthSum / FIRESENSE_TRIALS;
+      if(fireStrengthAvg<FIRESENSED){
+        STATE = RETURNHOME;
+      }
+      delay(500);
       break;
       
     case RETURNHOME:
+      //Serial.println("WALL FOLLOWING");
+      //Look for front obstacles:
+      //Is there something in front of me? If so, rotate 90 CCW
+      if(avgSensorVal(distFrontPin,3)>FRONTOBSTACLEDIST){
+        rotCW90();
+      }
+      mcontrol.drive(analogRead(distLeftFrontPin),analogRead(distLeftBackPin),180);
       
+      
+      //Look for lines. If found, change state to aligning with line
+      #if LINESENSING_INVERTED
+        if(analogRead(lineLeftPin)>LINESENSED || analogRead(lineRightPin)>LINESENSED){
+          rightMotor.brake();
+          leftMotor.brake();
+          delay(200);                                        //Pause
+          leftMotor.drive(80);                               //Drive forward slightly to
+          rightMotor.drive(80);                              //verify that we are now off
+          delay(400);                                        //the line and not mistakenly
+          leftMotor.brake();                                 //reading the start pad
+          rightMotor.brake();
+          lineLeft  = analogRead(lineLeftPin);
+          lineRight = analogRead(lineRightPin);
+          #if LINESENSING_INVERTED
+            lineLeftSensed  = (lineLeft  > LINESENSED);
+            lineRightSensed = (lineRight > LINESENSED);
+          #else
+            lineLeftSensed  = (lineLeft  < LINESENSED);
+            lineRightSensed = (lineRight < LINESENSED);
+          #endif
+          if(lineLeftSensed || lineRightSensed){
+            STATE = HOMEREACHED;
+          }
+        }
+      #else
+        if(analogRead(lineLeftPin)<LINESENSED || analogRead(lineRightPin)<LINESENSED){
+          rightMotor.brake();
+          leftMotor.brake();
+          delay(200);                                        //Pause
+          leftMotor.drive(80);                               //Drive forward slightly to
+          rightMotor.drive(80);                              //verify that we are now off
+          delay(400);                                        //the line and not mistakenly
+          leftMotor.brake();                                 //reading the start pad
+          rightMotor.brake();
+          lineLeft  = analogRead(lineLeftPin);
+          lineRight = analogRead(lineRightPin);
+          #if LINESENSING_INVERTED
+            lineLeftSensed  = (lineLeft  > LINESENSED);
+            lineRightSensed = (lineRight > LINESENSED);
+          #else
+            lineLeftSensed  = (lineLeft  < LINESENSED);
+            lineRightSensed = (lineRight < LINESENSED);
+          #endif
+          if(lineLeftSensed || lineRightSensed){
+            STATE = HOMEREACHED;
+          }
+        }
+      #endif
+      
+      break;
+      
+      case HOMEREACHED:
       
       break;
   }
@@ -561,7 +698,7 @@ void rotCCW90(){
 void leaveRoom(){
   leftMotor.drive(-255);
   rightMotor.drive(255);
-  delay(2000);
+  delay(1800);
   leftMotor.drive(250);
   rightMotor.drive(250);
   delay(1200);
@@ -585,3 +722,12 @@ void extinguish(){
   
   //pullServo.write(SERVO_LOOSE); 
 }
+
+int avgSensorVal(int pin, int trials){
+  int sum=0;
+  for(int i=0; i<trials; i++){
+    sum += analogRead(pin);
+  }
+  return sum/trials;
+}
+
